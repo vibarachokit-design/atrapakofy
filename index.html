@@ -1,0 +1,2759 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Juego Barista Khinally - Prepara cafés virtuales y gana descuentos reales">
+  <meta name="theme-color" content="#0e1b3d">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="icons/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+  
+  <title>Barista Khinally ☕ — Juego de Fidelización</title>
+  
+  <style>
+    :root{
+      --bg:#0e1b3d;
+      --accent:#ffd447;
+      --accent-2:#ff6a00;
+      --text:#ffe8c6;
+      --muted:#c8bfae;
+      --neonMagenta:#ff3ea5;
+      --neonCyan:#28c9ff;
+      --success:#4CAF50;
+      --warning:#FF9800;
+      --coffee-brown:#7a4e32;
+    }
+
+    /* Temas según hora */
+    .theme-morning{
+      --bg: #FFEECC;
+      --text: #5D4037;
+      --accent: #FF9800;
+      --accent-2: #F57C00;
+      --muted: #8D6E63;
+    }
+    .theme-afternoon{
+      --bg: #4A6572;
+      --text: #E1F5FE;
+      --accent: #FFB74D;
+      --accent-2: #FF9800;
+      --muted: #90A4AE;
+    }
+    .theme-night{
+      --bg: #0e1b3d;
+      --text: #ffe8c6;
+      --accent: #ffd447;
+      --accent-2: #ff6a00;
+      --muted: #c8bfae;
+    }
+
+    html,body{
+      height:100%; 
+      margin:0; 
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sans",sans-serif; 
+      -webkit-font-smoothing:antialiased;
+      overflow-x: hidden;
+      touch-action: manipulation; /* Mejor control táctil */
+    }
+    
+    body{
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.5s ease, color 0.5s ease;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent; /* Elimina el highlight azul en tap */
+    }
+    
+    .theme-morning body{
+      background: linear-gradient(135deg, #FFEECC 0%, #FFD8B1 100%);
+    }
+    
+    .theme-afternoon body{
+      background: linear-gradient(135deg, #4A6572 0%, #344955 100%);
+    }
+    
+    .theme-night body{
+      background: radial-gradient(1200px 700px at 20% 10%, #102247 0%, #0e1b3d 60%, #0a122b 100%);
+    }
+
+    main{
+      max-width: 1100px; 
+      margin: 12px auto; 
+      padding: 0 12px;
+    }
+    
+    .grid{
+      display: grid; 
+      grid-template-columns: 1.2fr .8fr; 
+      gap: 14px;
+    }
+    
+    @media (max-width: 900px){ 
+      .grid{
+        grid-template-columns: 1fr;
+      } 
+    }
+    
+    .card{
+      background: linear-gradient(180deg, rgba(23,42,88,.65), rgba(10,18,43,.65)); 
+      border: 1px solid rgba(255,255,255,.06); 
+      border-radius: 14px; 
+      box-shadow: 0 12px 30px rgba(0,0,0,.45); 
+      overflow: hidden;
+    }
+    
+    .theme-morning .card{
+      background: linear-gradient(180deg, rgba(255,248,225,.85), rgba(255,235,205,.85));
+      border: 1px solid rgba(255,193,7,.2);
+      color: #5D4037;
+    }
+    
+    .theme-afternoon .card{
+      background: linear-gradient(180deg, rgba(66,100,138,.85), rgba(52,73,85,.85));
+      border: 1px solid rgba(255,183,77,.2);
+    }
+    
+    .card h2{
+      margin: 0; 
+      padding: 12px 14px; 
+      border-bottom: 1px solid rgba(255,255,255,.06); 
+      font-size: 18px;
+    }
+    
+    .theme-morning .card h2{
+      border-bottom: 1px solid rgba(255,193,7,.3);
+      color: #5D4037;
+    }
+    
+    .theme-afternoon .card h2{
+      border-bottom: 1px solid rgba(255,183,77,.3);
+    }
+    
+    .canvas-wrap{
+      padding: 8px; 
+      position: relative;
+      cursor: pointer; /* Indica que es interactivo */
+    }
+    
+    canvas{
+      width: 100%; 
+      display: block; 
+      border-radius: 12px; 
+      background: linear-gradient(180deg,#0f1a38 0%, #0b152f 100%); 
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), 0 12px 30px rgba(0,0,0,.45);
+      touch-action: none; /* Para mejor control táctil */
+    }
+    
+    .theme-morning canvas{
+      background: linear-gradient(180deg, #FFF8E1 0%, #FFECB3 100%);
+      box-shadow: inset 0 0 0 1px rgba(255,193,7,.1), 0 12px 30px rgba(0,0,0,.15);
+    }
+    
+    .theme-afternoon canvas{
+      background: linear-gradient(180deg, #455A64 0%, #37474F 100%);
+      box-shadow: inset 0 0 0 1px rgba(255,183,77,.1), 0 12px 30px rgba(0,0,0,.25);
+    }
+
+    .hud{
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 10px; 
+      align-items: center; 
+      padding: 12px;
+    }
+    
+    .pill{
+      background: linear-gradient(180deg, rgba(11,21,47,0.75), rgba(9,16,33,0.55)); 
+      border: 1px solid rgba(255,255,255,.04); 
+      padding: 8px 10px; 
+      border-radius: 999px; 
+      font-size: 13px; 
+      color: var(--muted); 
+      display: flex; 
+      gap: 8px; 
+      align-items: center;
+    }
+    
+    .theme-morning .pill{
+      background: linear-gradient(180deg, rgba(255,248,225,0.85), rgba(255,235,205,0.85));
+      border: 1px solid rgba(255,193,7,.2);
+      color: #8D6E63;
+    }
+    
+    .theme-afternoon .pill{
+      background: linear-gradient(180deg, rgba(66,100,138,0.85), rgba(52,73,85,0.85));
+      border: 1px solid rgba(255,183,77,.2);
+    }
+    
+    .btn{
+      appearance: none; 
+      border: none; 
+      cursor: pointer; 
+      background: linear-gradient(180deg, var(--accent), var(--accent-2)); 
+      color: #2a231f; 
+      font-weight: 800; 
+      padding: 12px 16px; 
+      border-radius: 12px; 
+      box-shadow: 0 8px 18px rgba(0,0,0,.35); 
+      transition: transform .12s ease, filter .12s; 
+      font-size: 15px;
+    }
+    
+    .btn:hover{
+      transform: translateY(-2px);
+      filter: brightness(1.1);
+    }
+    
+    .btn:active{
+      transform: translateY(0);
+    }
+    
+    .btn.secondary{
+      background: linear-gradient(180deg,#20386f,#152a5b); 
+      color: var(--text);
+    }
+    
+    .theme-morning .btn.secondary{
+      background: linear-gradient(180deg, #5D4037, #3E2723);
+      color: #FFEECC;
+    }
+    
+    .theme-afternoon .btn.secondary{
+      background: linear-gradient(180deg, #37474F, #263238);
+    }
+    
+    .big-btn{
+      font-size: 18px; 
+      padding: 12px 18px;
+    }
+    
+    .stamps{
+      padding: 12px; 
+      display: grid; 
+      grid-template-columns: repeat(5,1fr); 
+      gap: 10px;
+    }
+    
+    .stamp{
+      aspect-ratio: 1; 
+      border-radius: 12px; 
+      display: grid; 
+      place-items: center; 
+      color: #d0c4b0; 
+      font-size: 20px; 
+      background: linear-gradient(160deg,#0f234b,#0c1836); 
+      border: 1px dashed rgba(255,255,255,.08); 
+      transition: transform .18s, box-shadow .18s;
+    }
+    
+    .theme-morning .stamp{
+      background: linear-gradient(160deg, #FFECB3, #FFD54F);
+      border: 1px dashed rgba(255,193,7,.3);
+      color: #5D4037;
+    }
+    
+    .theme-afternoon .stamp{
+      background: linear-gradient(160deg, #546E7A, #37474F);
+      border: 1px dashed rgba(255,183,77,.3);
+    }
+    
+    .stamp.filled{
+      border-style: solid; 
+      border-color: var(--accent); 
+      color: var(--accent); 
+      box-shadow: 0 8px 20px rgba(255,212,71,.06); 
+      transform: translateY(-4px);
+    }
+    
+    .stamp.special{
+      border-color: var(--neonMagenta); 
+      color: var(--neonMagenta); 
+      background: linear-gradient(160deg, #1a0f2b, #0c0836);
+    }
+    
+    .theme-morning .stamp.special{
+      background: linear-gradient(160deg, #FFD54F, #FFB300);
+      border-color: #FF9800;
+      color: #5D4037;
+    }
+    
+    /* Modal de instrucciones */
+    .modal{
+      position: fixed; 
+      inset: 0; 
+      background: rgba(4,6,14,0.85); 
+      z-index: 3000; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      opacity: 0; 
+      pointer-events: none; 
+      transition: opacity 0.3s ease; 
+      backdrop-filter: blur(4px);
+    }
+    
+    .modal.show{
+      opacity: 1; 
+      pointer-events: all;
+    }
+    
+    .modal-content{
+      background: linear-gradient(180deg, #1a2b5a, #0e1b3d); 
+      border-radius: 20px; 
+      padding: 28px; 
+      max-width: 500px; 
+      width: 90%; 
+      max-height: 85vh; 
+      overflow-y: auto; 
+      border: 1px solid rgba(255,255,255,0.1); 
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    
+    .theme-morning .modal-content{
+      background: linear-gradient(180deg, #FFF8E1, #FFECB3);
+      color: #5D4037;
+    }
+    
+    .theme-afternoon .modal-content{
+      background: linear-gradient(180deg, #546E7A, #37474F);
+    }
+    
+    .modal-content h2{
+      color: var(--accent); 
+      margin-top: 0;
+    }
+    
+    .controls-grid{
+      display: grid; 
+      grid-template-columns: repeat(2, 1fr); 
+      gap: 12px; 
+      margin: 20px 0;
+    }
+    
+    .control-item{
+      background: rgba(255,255,255,0.05); 
+      padding: 12px; 
+      border-radius: 10px; 
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    
+    .theme-morning .control-item{
+      background: rgba(255,193,7,0.1);
+      border: 1px solid rgba(255,193,7,0.2);
+    }
+    
+    .theme-afternoon .control-item{
+      background: rgba(255,183,77,0.1);
+      border: 1px solid rgba(255,183,77,0.2);
+    }
+    
+    .control-key{
+      display: inline-block; 
+      background: var(--accent); 
+      color: #000; 
+      padding: 4px 10px; 
+      border-radius: 6px; 
+      font-weight: bold; 
+      margin-right: 8px; 
+      font-family: monospace;
+    }
+    
+    /* Estadísticas post-partida */
+    .stats-panel{
+      background: linear-gradient(180deg, rgba(23,42,88,0.9), rgba(10,18,43,0.9)); 
+      border-radius: 14px; 
+      padding: 20px; 
+      margin-top: 16px; 
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    
+    .theme-morning .stats-panel{
+      background: linear-gradient(180deg, rgba(255,248,225,0.9), rgba(255,235,205,0.9));
+      border: 1px solid rgba(255,193,7,0.2);
+    }
+    
+    .theme-afternoon .stats-panel{
+      background: linear-gradient(180deg, rgba(66,100,138,0.9), rgba(52,73,85,0.9));
+      border: 1px solid rgba(255,183,77,0.2);
+    }
+    
+    .stat-row{
+      display: flex; 
+      justify-content: space-between; 
+      padding: 8px 0; 
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .theme-morning .stat-row{
+      border-bottom: 1px solid rgba(255,193,7,0.2);
+    }
+    
+    .theme-afternoon .stat-row{
+      border-bottom: 1px solid rgba(255,183,77,0.2);
+    }
+    
+    .stat-value{
+      color: var(--accent); 
+      font-weight: bold;
+    }
+    
+    /* Botones de redes sociales */
+    .share-buttons{
+      display: flex; 
+      gap: 10px; 
+      margin-top: 16px;
+    }
+    
+    .share-btn{
+      flex: 1; 
+      background: linear-gradient(180deg, #4267B2, #365899); 
+      color: white; 
+      border: none; 
+      padding: 10px; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-weight: bold; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 8px;
+    }
+    
+    .share-btn.whatsapp{
+      background: linear-gradient(180deg, #25D366, #128C7E);
+    }
+    
+    .share-btn.copy{
+      background: linear-gradient(180deg, #6c757d, #545b62);
+    }
+    
+    /* QR Code display */
+    .qr-container{
+      text-align: center; 
+      padding: 20px; 
+      background: white; 
+      border-radius: 12px; 
+      margin: 16px 0;
+    }
+    
+    .qr-container img{
+      max-width: 200px; 
+      height: auto;
+    }
+    
+    /* Toast mejorado */
+    .toast{
+      position: fixed; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      bottom: calc(16px + env(safe-area-inset-bottom)); 
+      background: #08122a; 
+      border: 1px solid rgba(255,255,255,.06); 
+      padding: 14px 18px; 
+      border-radius: 12px; 
+      box-shadow: 0 10px 30px rgba(0,0,0,.6); 
+      opacity: 0; 
+      pointer-events: none; 
+      transition: opacity .25s ease, transform .25s; 
+      max-width: 90%; 
+      text-align: center; 
+      z-index: 2000;
+    }
+    
+    .theme-morning .toast{
+      background: #FFF8E1;
+      border: 1px solid rgba(255,193,7,.2);
+      color: #5D4037;
+    }
+    
+    .theme-afternoon .toast{
+      background: #546E7A;
+      border: 1px solid rgba(255,183,77,.2);
+    }
+    
+    .toast.show{
+      opacity: 1; 
+      transform: translateX(-50%) translateY(-6px);
+    }
+    
+    .toast.success{
+      border-left: 4px solid var(--success);
+    }
+    
+    .toast.warning{
+      border-left: 4px solid var(--warning);
+    }
+    
+    .toast.info{
+      border-left: 4px solid var(--neonCyan);
+    }
+
+    /* Welcome visuals */
+    .welcome{
+      position: fixed; 
+      inset: 0; 
+      z-index: 2000; 
+      display: grid; 
+      grid-template-rows: 1fr auto; 
+      place-items: center; 
+      padding: 18px; 
+      background: radial-gradient(1200px 700px at 20% 10%, #13285a 0%, #0c1737 60%, #080f27 100%);
+    }
+    
+    .theme-morning .welcome{
+      background: linear-gradient(135deg, #FFEECC 0%, #FFD8B1 100%);
+      color: #5D4037;
+    }
+    
+    .theme-afternoon .welcome{
+      background: linear-gradient(135deg, #4A6572 0%, #344955 100%);
+    }
+    
+    .welcome-inner{
+      width: 100%; 
+      max-width: 980px; 
+      text-align: center; 
+      color: var(--text);
+    }
+    
+    .welcome .brand{
+      font-size: clamp(22px,6.6vw,44px); 
+      font-weight: 900; 
+      text-shadow: 0 0 8px var(--neonMagenta), 0 0 16px rgba(255,62,165,.35);
+    }
+    
+    .theme-morning .welcome .brand{
+      text-shadow: 0 0 8px #FF9800, 0 0 16px rgba(255,152,0,.35);
+      color: #5D4037;
+    }
+    
+    .theme-afternoon .welcome .brand{
+      text-shadow: 0 0 8px #FFB74D, 0 0 16px rgba(255,183,77,.35);
+    }
+    
+    .welcome .subtitle{
+      font-size: clamp(14px,4vw,18px); 
+      opacity: .95; 
+      margin-top: 8px;
+    }
+    
+    .welcome .hero{
+      width: 100%;
+      max-width: 720px;
+      max-height: 78vh;
+      height: auto;
+      margin: 18px auto 6px;
+      position: relative;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 18px 60px rgba(0,0,0,.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #071126;
+    }
+    
+    .theme-morning .welcome .hero{
+      background: #FFD8B1;
+      box-shadow: 0 18px 60px rgba(0,0,0,.3);
+    }
+    
+    .theme-afternoon .welcome .hero{
+      background: #344955;
+      box-shadow: 0 18px 60px rgba(0,0,0,.4);
+    }
+    
+    .welcome .hero picture,
+    .welcome .hero img{
+      width: auto;
+      height: auto;
+      max-width: 94%;
+      max-height: 74vh;
+      display: block;
+      object-fit: contain;
+      border-radius: 12px;
+    }
+    
+    @media (max-width: 480px){
+      .welcome .hero{ 
+        max-width: 95%; 
+        max-height: 84vh; 
+      }
+      .welcome .hero picture, 
+      .welcome .hero img{ 
+        max-width: 92%; 
+        max-height: 80vh; 
+      }
+      .hud{
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      }
+      .controls-grid{
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .hero-overlay{ 
+      position: absolute; 
+      inset: 0; 
+      border-radius: 18px; 
+      background: linear-gradient(to top, rgba(4,6,14,.36), rgba(4,6,14,.12)); 
+      pointer-events: none; 
+    }
+    
+    .theme-morning .hero-overlay{
+      background: linear-gradient(to top, rgba(255,248,225,.36), rgba(255,235,205,.12));
+    }
+    
+    .theme-afternoon .hero-overlay{
+      background: linear-gradient(to top, rgba(52,73,85,.36), rgba(38,50,56,.12));
+    }
+    
+    .welcome .cta{
+      margin-top: 12px;
+    }
+    
+    .start{
+      appearance: none; 
+      border: none; 
+      cursor: pointer; 
+      font-weight: 900; 
+      letter-spacing: .35px; 
+      padding: 14px 26px; 
+      border-radius: 14px; 
+      font-size: 18px; 
+      color: #181010; 
+      background: linear-gradient(180deg, var(--accent), var(--accent-2)); 
+      box-shadow: 0 16px 46px rgba(0,0,0,.5), 0 0 26px rgba(255,212,71,0.06) inset; 
+      transition: transform .18s ease;
+    }
+    
+    .start.pulse{
+      animation: btnPulse 1.8s ease-in-out infinite;
+    }
+    
+    @keyframes btnPulse{ 
+      0%{ transform: translateY(0) scale(1); } 
+      50%{ transform: translateY(-4px) scale(1.02); } 
+      100%{ transform: translateY(0) scale(1); } 
+    }
+    
+    /* Botón de inicio sobre la imagen */
+    .hero-start-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      appearance: none; 
+      border: none; 
+      cursor: pointer; 
+      font-weight: 900; 
+      letter-spacing: .35px; 
+      padding: 16px 32px; 
+      border-radius: 16px; 
+      font-size: 20px; 
+      color: #181010; 
+      background: linear-gradient(180deg, var(--accent), var(--accent-2)); 
+      box-shadow: 0 16px 46px rgba(0,0,0,.7), 0 0 26px rgba(255,212,71,0.1) inset; 
+      transition: transform .18s ease, box-shadow .18s;
+      z-index: 10;
+      white-space: nowrap;
+    }
+    
+    .hero-start-btn:hover {
+      transform: translate(-50%, -50%) translateY(-2px);
+      box-shadow: 0 20px 50px rgba(0,0,0,.8), 0 0 30px rgba(255,212,71,0.15) inset;
+    }
+    
+    .hero-start-btn.pulse {
+      animation: heroBtnPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes heroBtnPulse {
+      0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 16px 46px rgba(0,0,0,.7), 0 0 26px rgba(255,212,71,0.1) inset; }
+      50% { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 20px 50px rgba(0,0,0,.8), 0 0 30px rgba(255,212,71,0.15) inset; }
+      100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 16px 46px rgba(0,0,0,.7), 0 0 26px rgba(255,212,71,0.1) inset; }
+    }
+    
+    @media (max-width: 480px) {
+      .hero-start-btn {
+        padding: 14px 24px;
+        font-size: 18px;
+      }
+    }
+    
+    /* Instalar PWA banner */
+    .install-banner{
+      position: fixed; 
+      bottom: 0; 
+      left: 0; 
+      right: 0; 
+      background: linear-gradient(90deg, var(--accent), var(--accent-2)); 
+      color: #000; 
+      padding: 14px; 
+      text-align: center; 
+      z-index: 2500; 
+      transform: translateY(100%); 
+      transition: transform 0.3s ease; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 12px;
+    }
+    
+    .install-banner.show{
+      transform: translateY(0);
+    }
+    
+    .install-close{
+      background: none; 
+      border: none; 
+      color: #000; 
+      font-size: 24px; 
+      cursor: pointer; 
+      padding: 0 12px;
+    }
+    
+    /* Loading spinner */
+    .loader{
+      width: 40px; 
+      height: 40px; 
+      border: 4px solid rgba(255,255,255,0.1); 
+      border-top-color: var(--accent); 
+      border-radius: 50%; 
+      animation: spin 1s linear infinite; 
+      margin: 20px auto;
+    }
+    
+    @keyframes spin{
+      to{
+        transform: rotate(360deg);
+      }
+    }
+    
+    /* Contador de combo */
+    .combo-counter{
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.7);
+      color: var(--accent);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 18px;
+      display: none;
+      animation: pulseCombo 0.5s ease;
+      z-index: 100;
+    }
+    
+    @keyframes pulseCombo{
+      0%{ transform: scale(1); }
+      50%{ transform: scale(1.1); }
+      100%{ transform: scale(1); }
+    }
+    
+    /* Indicador de toque */
+    .touch-indicator {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(255, 212, 71, 0.3);
+      border: 2px solid var(--accent);
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0);
+      z-index: 100;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    
+    .touch-indicator.active {
+      opacity: 1;
+      transform: scale(1);
+      animation: touchPulse 0.5s ease-out;
+    }
+    
+    @keyframes touchPulse {
+      0% { transform: scale(0); opacity: 1; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+    
+    /* Botón de inicio en HUD más visible */
+    .start-game-btn {
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      color: #2a231f;
+      font-weight: 800;
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      box-shadow: 0 8px 18px rgba(0,0,0,.35);
+      transition: transform .12s ease, filter .12s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .start-game-btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.1);
+    }
+    
+    .start-game-btn:active {
+      transform: translateY(0);
+    }
+    
+    /* Modal de selección de modo */
+    .mode-selector {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    
+    .mode-option {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    
+    .mode-option:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    .mode-option.selected {
+      border-color: var(--accent);
+      background: rgba(255, 212, 71, 0.1);
+    }
+    
+    .mode-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+      display: block;
+    }
+    
+    .mode-name {
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    
+    .mode-desc {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    
+    .mode-time {
+      font-size: 12px;
+      background: var(--accent-2);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    
+    /* Botón para cambiar modo durante el juego */
+    .change-mode-btn {
+      background: linear-gradient(180deg, #37474F, #263238);
+      color: var(--text);
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .change-mode-btn:hover {
+      background: linear-gradient(180deg, #455A64, #37474F);
+    }
+  </style>
+</head>
+<body class="theme-night">
+  <!-- Welcome / portada -->
+  <section class="welcome" id="welcome">
+    <div class="welcome-inner">
+      <div class="brand">☕ Espacio Khinally</div>
+      <div class="subtitle">Prepará cafés virtuales, ganá insignias y canjeá un café REAL gratis</div>
+      
+      <div class="hero" id="hero" role="img" aria-label="Portada Barista Khinally">
+        <picture>
+          <source srcset="images/khinally-hero.jpg" type="image/jpeg">
+          <img src="images/khinally-hero.jpg" alt="Barista Khinally — portada" loading="lazy" />
+        </picture>
+        <div class="hero-overlay" aria-hidden="true"></div>
+        <!-- Botón de inicio sobre la imagen -->
+        <button class="hero-start-btn pulse" id="heroStartBtn">🎮 JUGAR AHORA</button>
+      </div>
+      
+      <div class="cta">
+        <button class="start pulse" id="startWelcomeBtn">🎮 Comenzar a preparar café</button>
+        <button class="btn secondary" style="margin-left:12px;" id="howToPlayBtn">❓ ¿Cómo jugar?</button>
+      </div>
+      
+      <div style="margin-top:20px; font-size:14px; opacity:0.8;">
+        <p>🎯 <strong>Instrucción:</strong> Toca la taza de café para atrapar el grano</p>
+        <p>🏆 <strong>Total jugadores esta semana:</strong> <span id="weeklyPlayers">0</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal de selección de modo -->
+  <div class="modal" id="modeSelectModal">
+    <div class="modal-content">
+      <h2>🎮 Selecciona un Modo de Juego</h2>
+      <p>Elige el tipo de café que quieres preparar:</p>
+      
+      <div class="mode-selector">
+        <div class="mode-option selected" data-mode="espresso" data-time="60" data-speed="220">
+          <span class="mode-icon">☕</span>
+          <div class="mode-name">Espresso</div>
+          <div class="mode-desc">Modo clásico - Perfecto para empezar</div>
+          <div class="mode-time">60 segundos</div>
+        </div>
+        
+        <div class="mode-option" data-mode="cappuccino" data-time="45" data-speed="290">
+          <span class="mode-icon">🥛</span>
+          <div class="mode-name">Cappuccino</div>
+          <div class="mode-desc">¡Más rápido! Para baristas expertos</div>
+          <div class="mode-time">45 segundos</div>
+        </div>
+        
+        <div class="mode-option" data-mode="mocha" data-time="90" data-speed="180">
+          <span class="mode-icon">🍫</span>
+          <div class="mode-name">Mocha</div>
+          <div class="mode-desc">Zona variable - Desafío mayor</div>
+          <div class="mode-time">90 segundos</div>
+        </div>
+      </div>
+      
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn secondary" style="flex:1;" onclick="hideModal('modeSelectModal')">
+          Cancelar
+        </button>
+        <button class="btn" style="flex:2;" id="startSelectedModeBtn">
+          ▶️ Iniciar Juego
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de instrucciones -->
+  <div class="modal" id="instructionsModal">
+    <div class="modal-content">
+      <h2>📖 Guía del Barista</h2>
+      <p><strong>¡Nueva mecánica!</strong> Ahora tocás directamente la taza de café para atrapar el grano.</p>
+      
+      <div class="controls-grid">
+        <div class="control-item">
+          <span class="control-key">🖱️</span><br>
+          Haz clic en la taza
+        </div>
+        <div class="control-item">
+          <span class="control-key">📱</span><br>
+          Toca la taza en móvil
+        </div>
+        <div class="control-item">
+          <span class="control-key">S</span><br>
+          Iniciar juego
+        </div>
+        <div class="control-item">
+          <span class="control-key">M</span><br>
+          Cambiar modo
+        </div>
+        <div class="control-item" style="grid-column: span 2;">
+          <span class="control-key">🎯</span><br>
+          Atrapá el grano cuando pase por la zona dorada
+        </div>
+      </div>
+      
+      <h3>🎯 Objetivo del Juego</h3>
+      <ul style="padding-left:20px; margin-bottom:20px;">
+        <li>Tocá la taza cuando el grano esté en la <span style="color:var(--accent)">zona dorada</span></li>
+        <li>Llená la taza para preparar un café</li>
+        <li>Cada taza llena = 1 café preparado</li>
+        <li>Cada 5 cafés = 1 insignia 🏅</li>
+        <li>10 insignias = Café gratis REAL ☕</li>
+      </ul>
+      
+      <h3>⭐ Modos de Juego</h3>
+      <ul style="padding-left:20px; margin-bottom:20px;">
+        <li><strong>☕ Espresso</strong> (60s) - Modo clásico</li>
+        <li><strong>🥛 Cappuccino</strong> (45s) - ¡Más rápido!</li>
+        <li><strong>🍫 Mocha</strong> (90s) - Zona variable</li>
+      </ul>
+      
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn" style="flex:1;" id="closeInstructionsBtn">Entendido</button>
+        <button class="btn secondary" style="flex:1;" onclick="showModeSelectModal()">
+          ¡Jugar Ahora!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de estadísticas -->
+  <div class="modal" id="statsModal">
+    <div class="modal-content">
+      <h2>📊 Tus Estadísticas</h2>
+      <div id="statsContent">
+        <div class="loader"></div>
+      </div>
+      
+      <div class="share-buttons">
+        <button class="share-btn whatsapp" id="shareWhatsappBtn">
+          <span>📱</span> Compartir en WhatsApp
+        </button>
+        <button class="share-btn copy" id="copyStatsBtn">
+          <span>📋</span> Copiar Estadísticas
+        </button>
+      </div>
+      
+      <button class="btn" style="width:100%; margin-top:16px;" onclick="hideModal('statsModal')">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal de canje exitoso -->
+  <div class="modal" id="redeemModal">
+    <div class="modal-content">
+      <h2>🎉 ¡Café Gratis Ganado!</h2>
+      <p>Presentá este código en la cafetería para tu café gratis:</p>
+      
+      <div style="background:var(--accent); color:#000; padding:16px; border-radius:10px; text-align:center; font-family:monospace; font-size:24px; font-weight:bold; letter-spacing:2px; margin:20px 0;">
+        KHINALLY-<span id="couponCode">0000</span>
+      </div>
+      
+      <p><small>⏰ Válido por 24 horas • Muestra este código al barista • No acumulable con otras promociones</small></p>
+      
+      <div class="qr-container" id="qrContainer">
+        <p>📱 Escaneá el código QR:</p>
+        <div id="qrCode"></div>
+        <p><small>O simplemente mostrá esta pantalla en la cafetería</small></p>
+      </div>
+      
+      <div class="share-buttons">
+        <button class="share-btn whatsapp" id="shareCouponBtn">
+          <span>📱</span> Compartir Cupón
+        </button>
+      </div>
+      
+      <div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:8px; margin-top:16px;">
+        <p style="margin:0; font-size:14px;"><strong>📍 Ubicación Khinally:</strong><br>
+        <small>Lord Cochrane 049<br>
+        Horario: Jueves a Lunes 17:00-22:00 hrs</small></p>
+      </div>
+      
+      <button class="btn" style="width:100%; margin-top:16px;" onclick="hideModal('redeemModal')">🎮 Seguir Jugando</button>
+    </div>
+  </div>
+
+  <!-- Indicador de toque -->
+  <div class="touch-indicator" id="touchIndicator"></div>
+
+  <!-- Contador de combo -->
+  <div class="combo-counter" id="comboCounter">Combo: x<span id="comboValue">0</span></div>
+
+  <main>
+    <section class="grid">
+      <article class="card" aria-label="Juego principal">
+        <h2 id="gameModeTitle">☕ Modo Espresso (60s)</h2>
+        
+        <!-- Solo botón de inicio grande -->
+        <div style="padding: 12px; text-align: center;">
+          <button class="start-game-btn" id="startBtn" style="font-size: 18px; padding: 16px 32px; width: 100%; max-width: 300px; margin: 0 auto; display: flex; justify-content: center; gap: 12px;">
+            <span style="font-size:24px;">▶️</span>
+            <span>INICIAR JUEGO</span>
+          </button>
+        </div>
+        
+        <div class="canvas-wrap">
+          <canvas id="game" aria-label="Zona de juego - Toca la taza para atrapar el grano"></canvas>
+        </div>
+        
+        <div class="hud" id="hud">
+          <div class="pill">🏆 Puntuación: <strong id="score">0</strong></div>
+          <div class="pill">🥇 Récord: <strong id="record">0</strong></div>
+          <div class="pill">☕ Cafés: <strong id="coffees">0</strong></div>
+          <div class="pill">🏅 Insignias: <strong id="badgesCount">0</strong></div>
+          <div class="pill">⏱️ Tiempo: <strong id="time">60.0s</strong></div>
+          <div class="pill">🎮 Modo: <strong id="modeLabel">Espresso</strong></div>
+          
+          <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <!-- Botón para cambiar modo durante el juego -->
+            <button class="change-mode-btn" id="changeModeBtn" title="Cambiar modo">
+              <span>🔄</span> Cambiar Modo
+            </button>
+            <button class="btn secondary" id="musicBtn" title="Encender/apagar música">🎵</button>
+            <button class="btn secondary" id="helpBtn" title="Instrucciones">❓</button>
+            <button class="btn secondary" id="shareBtn" title="Compartir">📤</button>
+          </div>
+        </div>
+        
+        <div class="footnote" style="padding:12px; color:var(--muted);">
+          🎯 <strong>Tocá la taza de café</strong> cuando el grano esté en la zona dorada. 
+          Llená la taza para preparar un café. 
+          Cada 5 cafés ganás 1 insignia. Con 10 insignias podés canjear un café REAL gratis.
+          <button class="btn secondary" style="float:right; padding:4px 12px; font-size:12px;" id="viewStatsBtn">
+            📊 Ver Estadísticas
+          </button>
+        </div>
+        
+        <!-- Estadísticas rápidas -->
+        <div class="stats-panel" id="quickStats" style="display:none;">
+          <h4 style="margin-top:0; color:var(--accent);">📈 Estadísticas de Partida</h4>
+          <div class="stat-row">
+            <span>🎯 Aciertos:</span>
+            <span class="stat-value" id="quickHits">0</span>
+          </div>
+          <div class="stat-row">
+            <span>📊 Precisión:</span>
+            <span class="stat-value" id="quickAccuracy">0%</span>
+          </div>
+          <div class="stat-row">
+            <span>⚡ Combo máximo:</span>
+            <span class="stat-value" id="quickCombo">x0</span>
+          </div>
+          <div class="stat-row">
+            <span>⏱️ Tiempo promedio:</span>
+            <span class="stat-value" id="quickAvgTime">0.0s</span>
+          </div>
+        </div>
+      </article>
+
+      <aside class="card" aria-label="Tarjeta de fidelidad">
+        <h2>🏷️ Tarjeta de Fidelidad Café Khinally</h2>
+        
+        <div class="stamps" id="stamps" aria-live="polite"></div>
+        
+        <!-- Barra de progreso -->
+        <div style="padding:0 12px; margin-top:8px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <small>📈 Progreso: <span id="progressText">0/10</span></small>
+            <small><span id="badgesLeft">10</span> faltan para café gratis</small>
+          </div>
+          <div style="background:rgba(255,255,255,0.1); height:8px; border-radius:4px; overflow:hidden;">
+            <div id="progressBar" style="height:100%; background:var(--accent); width:0%; transition:width 0.3s;"></div>
+          </div>
+        </div>
+        
+        <div class="hud">
+          <button class="btn" id="redeemBtn" disabled>
+            🎁 Canjear 10 insignias → Café gratis REAL
+          </button>
+        </div>
+        
+        <!-- Café especial desbloqueado -->
+        <div id="specialCoffee" style="padding:12px; display:none;">
+          <div style="background:linear-gradient(90deg, rgba(255,62,165,0.1), rgba(40,201,255,0.1)); border-radius:10px; padding:12px; border:1px solid var(--neonMagenta);">
+            <strong style="color:var(--neonMagenta)">✨ ¡Café Especial Desbloqueado!</strong>
+            <p style="margin:8px 0 0 0; font-size:14px;">
+              <span id="specialCoffeeName">Doble Shot</span>: 
+              <span id="specialCoffeeDesc">Atrapá 2 granos a la vez por 30 segundos</span>
+            </p>
+            <button class="btn" style="margin-top:8px; padding:8px 12px; font-size:14px; width:100%;" id="activateSpecialBtn">
+              ⚡ Activar Café Especial
+            </button>
+          </div>
+        </div>
+        
+        <div class="footnote" style="padding:12px; color:var(--muted);">
+          📱 <strong>Las insignias y cafés se guardan en tu dispositivo</strong><br>
+          ☕ <strong>Total cafés preparados:</strong> <span id="totalCoffees">0</span><br>
+          🎉 <strong>Evento semanal:</strong> Jueves 2x1 en espresso con 100+ puntos<br>
+          <small style="display:block; margin-top:8px;">📍 Presentá tu cupón en: Lord Cochrane 049</small>
+        </div>
+      </aside>
+    </section>
+    
+    <!-- Pie de página promocional -->
+    <footer style="text-align:center; margin-top:30px; padding:20px; color:var(--muted); font-size:14px;">
+      <p>🎮 <strong>Barista Khinally</strong> - Juego de fidelización oficial</p>
+      <p>📍 Visitanos en: <strong>Lord Cochrane 049</strong> | 📞 Teléfono: <strong>+56 966874954</strong></p>
+      <p>⏰ Horario: Jueves a Lunes 17:00-22:00 hrs</p>
+      <p style="margin-top:10px; font-size:12px;">© 2024 Café Khinally. Todos los derechos reservados.</p>
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ============================================
+// CONFIGURACIÓN INICIAL
+// ============================================
+
+// Estado del juego
+const gameState = {
+  running: false,
+  x: 0,
+  dir: 1,
+  baseSpeed: 220,
+  speed: 220,
+  target: { start: 0, end: 0, baseWidth: 0.10 },
+  score: 0,
+  record: 0,
+  fill: 0,
+  lastTs: 0,
+  timeLeft: 60,
+  timeTotal: 60,
+  mugSlide: { active: false, t: 0, dur: 0.9 },
+  prevFill: 0,
+  
+  // Estadísticas
+  coffeesPrepared: 0,
+  badges: 0,
+  totalCoffees: 0,
+  bestCoffees: 0,
+  totalHits: 0,
+  totalAttempts: 0,
+  totalPlayTime: 0,
+  highestCombo: 0,
+  
+  // Partida actual
+  currentHits: 0,
+  currentAttempts: 0,
+  currentCombo: 0,
+  comboTime: 0,
+  currentHighestCombo: 0,
+  gameStartTime: 0,
+  
+  // Modos
+  currentMode: 'espresso',
+  modes: {
+    espresso: { name: 'Espresso', time: 60, speed: 220, badge: '☕', desc: 'Modo clásico - Perfecto para empezar' },
+    cappuccino: { name: 'Cappuccino', time: 45, speed: 290, badge: '🥛', desc: '¡Más rápido! Para baristas expertos' },
+    mocha: { name: 'Mocha', time: 90, speed: 180, badge: '🍫', desc: 'Zona variable - Desafío mayor' }
+  },
+  
+  // Café especial
+  specialCoffeeActive: false,
+  specialCoffeeType: null,
+  specialCoffeeTimeLeft: 0,
+  
+  // Desbloqueos
+  unlockedCoffees: ['espresso'],
+  
+  // Configuración
+  particlesEnabled: true,
+  isMobile: false,
+  musicEnabled: true
+};
+
+// Canvas y variables
+const cvs = document.getElementById('game');
+const ctx = cvs.getContext('2d');
+let W = 920, H = 400;
+let lastDt = 0;
+let steamParticles = [];
+let steamAccum = 0;
+let confParticles = [];
+let lastSurf = { cx: 0, y: 0, rx: 0, ry: 0 };
+
+// Utilidades DOM
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+
+// Variables para la taza (para detectar clics)
+let mugBounds = {
+  x: 0, y: 0, width: 0, height: 0
+};
+
+// ============================================
+// AUDIO SIMPLIFICADO
+// ============================================
+const AudioKit = {
+  enabled: true,
+  
+  playHit: () => {
+    if (!this.enabled) return;
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.1);
+    } catch (e) {}
+  },
+  
+  playMiss: () => {
+    if (!this.enabled) return;
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 200;
+      oscillator.type = 'sawtooth';
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (e) {}
+  },
+  
+  playBadge: () => {
+    if (!this.enabled) return;
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      [600, 800, 1000].forEach((freq, i) => {
+        setTimeout(() => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = freq;
+          oscillator.type = 'sine';
+          gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+          
+          oscillator.start();
+          oscillator.stop(audioContext.currentTime + 0.2);
+        }, i * 50);
+      });
+    } catch (e) {}
+  },
+  
+  playSuccess: () => {
+    if (!this.enabled) return;
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      [400, 600, 800].forEach((freq, i) => {
+        setTimeout(() => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = freq;
+          oscillator.type = 'sine';
+          gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          
+          oscillator.start();
+          oscillator.stop(audioContext.currentTime + 0.3);
+        }, i * 100);
+      });
+    } catch (e) {}
+  },
+  
+  toggle: () => {
+    this.enabled = !this.enabled;
+    return this.enabled;
+  }
+};
+
+// ============================================
+// FUNCIONES UTILITARIAS
+// ============================================
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function easeInOutCubic(u) { return u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2; }
+
+function toast(msg, type = 'info', duration = 2600) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function showModal(id) {
+  $(`#${id}`).classList.add('show');
+}
+
+function hideModal(id) {
+  $(`#${id}`).classList.remove('show');
+}
+
+function hideWelcome() {
+  $('#welcome').style.display = 'none';
+}
+
+// ============================================
+// SISTEMA DE GUARDADO
+// ============================================
+function saveGame() {
+  localStorage.setItem('khinally_record', gameState.record.toString());
+  localStorage.setItem('khinally_coffees', gameState.coffeesPrepared.toString());
+  localStorage.setItem('khinally_badges', gameState.badges.toString());
+  localStorage.setItem('khinally_total_coffees', gameState.totalCoffees.toString());
+  localStorage.setItem('khinally_total_hits', gameState.totalHits.toString());
+  localStorage.setItem('khinally_total_attempts', gameState.totalAttempts.toString());
+  localStorage.setItem('khinally_highest_combo', gameState.highestCombo.toString());
+  localStorage.setItem('khinally_unlocked_coffees', JSON.stringify(gameState.unlockedCoffees));
+}
+
+function loadGame() {
+  gameState.record = parseInt(localStorage.getItem('khinally_record') || '0');
+  gameState.coffeesPrepared = parseInt(localStorage.getItem('khinally_coffees') || '0');
+  gameState.badges = parseInt(localStorage.getItem('khinally_badges') || '0');
+  gameState.totalCoffees = parseInt(localStorage.getItem('khinally_total_coffees') || '0');
+  gameState.totalHits = parseInt(localStorage.getItem('khinally_total_hits') || '0');
+  gameState.totalAttempts = parseInt(localStorage.getItem('khinally_total_attempts') || '0');
+  gameState.highestCombo = parseInt(localStorage.getItem('khinally_highest_combo') || '0');
+  
+  const savedCoffees = localStorage.getItem('khinally_unlocked_coffees');
+  if (savedCoffees) {
+    gameState.unlockedCoffees = JSON.parse(savedCoffees);
+  }
+  
+  // Actualizar UI
+  $('#record').textContent = gameState.record;
+  $('#coffees').textContent = gameState.coffeesPrepared;
+  $('#badgesCount').textContent = gameState.badges;
+  $('#totalCoffees').textContent = gameState.totalCoffees;
+}
+
+// ============================================
+// DIBUJADO MEJORADO DE LA TAZA - SIN OREJA
+// ============================================
+function drawMug(x, y, w, h, fillPct) {
+  // Guardar bounds para detección de clics
+  mugBounds.x = x;
+  mugBounds.y = y;
+  mugBounds.width = w;
+  mugBounds.height = h;
+  
+  const rimH = 18;
+  const wall = 12;
+  const topCx = x + w * 0.5;
+  const topCy = y + rimH;
+  const topRx = w * 0.46;
+  const topRy = 14;
+  const innerRx = topRx - 6;
+  const innerRy = topRy - 4;
+  const bodyY = y + rimH + 2;
+  const bodyH = h - rimH - 6;
+
+  // Sombra debajo de la taza
+  const shadowY = y + h + 8;
+  const shadowGrad = ctx.createRadialGradient(topCx, shadowY, 5, topCx, shadowY, w * 0.4);
+  shadowGrad.addColorStop(0, 'rgba(0,0,0,0.3)');
+  shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = shadowGrad;
+  ctx.beginPath();
+  ctx.ellipse(topCx, shadowY, w * 0.4, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cuerpo de la taza
+  const bodyGrad = ctx.createLinearGradient(x, bodyY, x, bodyY + bodyH);
+  bodyGrad.addColorStop(0, '#f5ebdd');
+  bodyGrad.addColorStop(0.55, '#eee3d3');
+  bodyGrad.addColorStop(1, '#e0d4c2');
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  ctx.roundRect(x, bodyY, w, bodyH, 22);
+  ctx.fill();
+
+  // Banda decorativa
+  const bandCx = x + w * 0.50;
+  const bandCy = bodyY + bodyH * 0.44;
+  const bandW = w * 0.42;
+  const bandH = 26;
+  ctx.save();
+  const bandGrad = ctx.createLinearGradient(bandCx - bandW/2, bandCy, bandCx + bandW/2, bandCy);
+  bandGrad.addColorStop(0, 'rgba(255,255,255,0.02)');
+  bandGrad.addColorStop(0.5, 'rgba(0,0,0,0.06)');
+  bandGrad.addColorStop(1, 'rgba(255,255,255,0.01)');
+  ctx.fillStyle = bandGrad;
+  ctx.beginPath();
+  ctx.roundRect(bandCx - bandW/2, bandCy - bandH/2, bandW, bandH, 12);
+  ctx.fill();
+  ctx.restore();
+
+  // Borde superior
+  const rimGrad = ctx.createLinearGradient(topCx, topCy - topRy, topCx, topCy + topRy);
+  rimGrad.addColorStop(0, '#ffffff');
+  rimGrad.addColorStop(0.4, '#efe5d6');
+  rimGrad.addColorStop(1, '#d9cbb9');
+  ctx.fillStyle = rimGrad;
+  ctx.beginPath();
+  ctx.ellipse(topCx, topCy, topRx, topRy, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Interior del borde
+  ctx.fillStyle = '#cbbca9';
+  ctx.beginPath();
+  ctx.ellipse(topCx, topCy, innerRx, innerRy, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Café dentro de la taza
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(topCx, topCy + 2, innerRx, innerRy, 0, 0, Math.PI * 2);
+  ctx.rect(x + wall, bodyY + 6, w - wall * 2, bodyH - 12);
+  ctx.clip();
+  
+  const pct = clamp(fillPct / 100, 0, 1);
+  const liquidH = (bodyH - 16) * pct;
+  const liqTopY = bodyY + (bodyH - 16) - liquidH;
+
+  // Gradiente del café
+  const coffeeGrad = ctx.createLinearGradient(0, liqTopY, 0, liqTopY + liquidH);
+  coffeeGrad.addColorStop(0, '#7a4e32');
+  coffeeGrad.addColorStop(1, '#3b2418');
+  ctx.fillStyle = coffeeGrad;
+  ctx.beginPath();
+  ctx.roundRect(x + wall + 2, liqTopY, w - wall * 2 - 4, liquidH, 14);
+  ctx.fill();
+
+  // Espuma cuando está casi lleno
+  if (pct > 0.8) {
+    const foamY = liqTopY - 4;
+    ctx.fillStyle = 'rgba(245, 235, 220, 0.9)';
+    ctx.beginPath();
+    ctx.ellipse(topCx, foamY, innerRx * 0.9, innerRy * 0.7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Burbujas de espuma
+    for (let i = 0; i < 8; i++) {
+      const bx = topCx + (Math.random() - 0.5) * innerRx * 1.5;
+      const by = foamY - 2 + Math.random() * 4;
+      const br = 2 + Math.random() * 3;
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.7 + Math.random() * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Reflejo en la superficie
+  const surfaceGrad = ctx.createRadialGradient(topCx, liqTopY + 8, 6, topCx, liqTopY + 8, innerRx * 0.95);
+  surfaceGrad.addColorStop(0, 'rgba(255,255,255,0.12)');
+  surfaceGrad.addColorStop(0.4, 'rgba(255,255,255,0.06)');
+  surfaceGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = surfaceGrad;
+  ctx.beginPath();
+  ctx.ellipse(topCx, liqTopY + 8, innerRx * 0.95, innerRy * 0.88, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  lastSurf.cx = topCx;
+  lastSurf.y = liqTopY + 8;
+  lastSurf.rx = innerRx * 0.95;
+  lastSurf.ry = innerRy * 0.88;
+
+  ctx.restore();
+
+  // Reflejos en el cuerpo
+  ctx.fillStyle = 'rgba(255,255,255,0.26)';
+  ctx.beginPath();
+  ctx.roundRect(x + w * 0.12, bodyY + bodyH * 0.18, 10, bodyH * 0.50, 8);
+  ctx.fill();
+  
+  ctx.fillStyle = 'rgba(255,255,255,0.16)';
+  ctx.beginPath();
+  ctx.roundRect(x + w * 0.80, bodyY + bodyH * 0.25, 6, bodyH * 0.42, 6);
+  ctx.fill();
+}
+
+// ============================================
+// DIBUJADO DE PISTA CON LÍNEAS VERTICALES
+// ============================================
+function drawTrack() {
+  const trackX = W * 0.08;
+  const trackW = W * 0.84;
+  const trackH = gameState.isMobile ? 36 : 32;
+  const trackY = H * 0.22 - trackH / 2;
+
+  // Fondo de la pista con gradiente
+  const trackGrad = ctx.createLinearGradient(trackX, trackY, trackX, trackY + trackH);
+  trackGrad.addColorStop(0, '#f6e7bf');
+  trackGrad.addColorStop(0.5, '#ecd9a6');
+  trackGrad.addColorStop(1, '#e6d095');
+  ctx.fillStyle = trackGrad;
+  ctx.beginPath();
+  ctx.roundRect(trackX, trackY, trackW, trackH, 16);
+  ctx.fill();
+
+  // Borde de la pista
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(trackX + 1, trackY + 1, trackW - 2, trackH - 2, 15);
+  ctx.stroke();
+
+  // LÍNEAS VERTICALES DE MEDICIÓN (corregido)
+  ctx.save();
+  ctx.translate(trackX, trackY);
+  ctx.strokeStyle = 'rgba(60,50,40,0.25)';
+  ctx.lineWidth = 1.5;
+  const nLines = 12; // Número de líneas verticales
+  for (let i = 0; i <= nLines; i++) {
+    const x = (trackW / nLines) * i;
+    ctx.beginPath();
+    ctx.moveTo(x, 4); // Comienza un poco más arriba
+    ctx.lineTo(x, trackH - 4); // Termina un poco más abajo
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Zona objetivo con efecto de pulso
+  const pulse = 0.5 + 0.5 * Math.sin(gameState.lastTs * 0.006);
+  const targetX = gameState.target.start;
+  const targetW = gameState.target.end - gameState.target.start;
+  const glow = 0.7 + 0.4 * pulse;
+  
+  // Sombra y brillo de la zona objetivo
+  ctx.save();
+  ctx.shadowColor = `rgba(255,212,71,${glow})`;
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = '#ffd447';
+  ctx.beginPath();
+  ctx.roundRect(targetX, trackY + 3, targetW, trackH - 6, 12);
+  ctx.fill();
+  ctx.restore();
+  
+  // Borde interior de la zona objetivo
+  ctx.strokeStyle = '#ffedb3';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(targetX + 2, trackY + 5, targetW - 4, trackH - 10, 10);
+  ctx.stroke();
+
+  // Texto "Zona dorada"
+  ctx.fillStyle = '#e6d7b3';
+  ctx.font = 'bold 16px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('🎯 Zona dorada', targetX + targetW / 2, trackY - 15);
+  ctx.textAlign = 'left';
+
+  // Grano de café
+  const beanX = gameState.x;
+  const beanY = trackY + trackH / 2;
+  
+  ctx.save();
+  ctx.translate(beanX, beanY);
+  
+  // Cuerpo principal del grano
+  const beanGrad = ctx.createLinearGradient(-15, -10, 15, 10);
+  beanGrad.addColorStop(0, '#8B4513');
+  beanGrad.addColorStop(0.5, '#6f3b1f');
+  beanGrad.addColorStop(1, '#5a2d15');
+  ctx.fillStyle = beanGrad;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 20, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Línea divisoria
+  ctx.strokeStyle = '#2c1d15';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(-12, -4);
+  ctx.lineTo(12, 4);
+  ctx.stroke();
+  
+  // Reflejo/brillo
+  const shineGrad = ctx.createRadialGradient(-8, -6, 0, -8, -6, 10);
+  shineGrad.addColorStop(0, 'rgba(255,255,255,0.25)');
+  shineGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = shineGrad;
+  ctx.beginPath();
+  ctx.ellipse(-8, -6, 10, 5, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Segundo grano si café doble está activo
+  if (gameState.specialCoffeeActive && gameState.specialCoffeeType === 'double') {
+    ctx.fillStyle = '#A0522D';
+    ctx.beginPath();
+    ctx.ellipse(18, -8, 16, 11, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  ctx.restore();
+}
+
+// ============================================
+// DETECCIÓN DE CLICS EN LA TAZA
+// ============================================
+function isPointInMug(x, y) {
+  // Verificar si el punto está en el cuerpo principal de la taza
+  if (x >= mugBounds.x && 
+      x <= mugBounds.x + mugBounds.width && 
+      y >= mugBounds.y && 
+      y <= mugBounds.y + mugBounds.height) {
+    return true;
+  }
+  
+  return false;
+}
+
+function showTouchIndicator(x, y) {
+  const indicator = $('#touchIndicator');
+  indicator.style.left = (x - 25) + 'px';
+  indicator.style.top = (y - 25) + 'px';
+  indicator.classList.add('active');
+  
+  setTimeout(() => {
+    indicator.classList.remove('active');
+  }, 500);
+}
+
+// ============================================
+// SISTEMA DE PARTÍCULAS
+// ============================================
+function spawnSteam(n) {
+  for(let i = 0; i < n; i++) {
+    steamParticles.push({
+      x: lastSurf.cx + (Math.random() * 20 - 10),
+      y: lastSurf.y - 2,
+      age: 0,
+      life: 1.4 + Math.random() * 1.2,
+      ampX: 8 + Math.random() * 8,
+      freq: 0.8 + Math.random() * 0.8,
+      phase: Math.random() * Math.PI * 2,
+      rise: 28 + Math.random() * 18,
+      drift: Math.random() * 16 - 8,
+      alpha: 0.10 + Math.random() * 0.08,
+      scale: 0.7 + Math.random() * 0.4
+    });
+  }
+}
+
+function steamTick(dt) {
+  if (gameState.fill > 8) {
+    steamAccum += dt;
+    const rate = (gameState.fill / 100) * 8;
+    let n = Math.floor(steamAccum * rate);
+    if (n > 0) {
+      spawnSteam(n);
+      steamAccum -= n / rate;
+    }
+  }
+  
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  
+  for (let i = steamParticles.length - 1; i >= 0; i--) {
+    const p = steamParticles[i];
+    p.age += dt;
+    
+    if (p.age > p.life) {
+      steamParticles.splice(i, 1);
+      continue;
+    }
+    
+    const t = p.age;
+    const fade = Math.sin(Math.PI * t / p.life);
+    const x = p.x + Math.sin((t + p.phase) * p.freq) * p.ampX + p.drift * t;
+    const y = p.y - p.rise * t;
+    const a = p.alpha * fade;
+    
+    for (let k = 0; k < 3; k++) {
+      const ry = (6 + 2 * k) * p.scale;
+      const rx = ry * 1.2;
+      ctx.fillStyle = `rgba(255,255,255,${a * (1 - k * 0.22)})`;
+      ctx.beginPath();
+      ctx.ellipse(x + k * 3, y - k * 8, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  
+  ctx.restore();
+}
+
+function confettiBurst(x, y, amount = 28) {
+  const colors = ['#ffd447', '#ff6a00', '#ff3ea5', '#28c9ff'];
+  
+  for (let i = 0; i < amount; i++) {
+    confParticles.push({
+      x, y,
+      vx: (Math.random() * 2 - 1) * 260,
+      vy: (Math.random() * 2 - 1) * 220 - 60,
+      life: 0.95 + Math.random() * 0.6,
+      color: colors[i % colors.length],
+      rot: Math.random() * 6
+    });
+  }
+}
+
+function confettiDraw(dt = 1/60) {
+  for (let i = confParticles.length - 1; i >= 0; i--) {
+    const p = confParticles[i];
+    p.life -= dt;
+    
+    if (p.life <= 0) {
+      confParticles.splice(i, 1);
+      continue;
+    }
+    
+    p.vy += 300 * dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot + (1 - p.life) * 6);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-4, -2, 8, 6);
+    ctx.restore();
+  }
+}
+
+// ============================================
+// DIBUJADO PRINCIPAL
+// ============================================
+function draw() {
+  // Limpiar canvas
+  ctx.clearRect(0, 0, W, H);
+  
+  // Fondo con gradiente sutil
+  for(let i = 0; i < H; i += 2) {
+    const g = 9 + Math.sin(i * 0.02) * 5;
+    ctx.fillStyle = `rgb(${g},${g+6},${g+16})`;
+    ctx.fillRect(0, i, W, 2);
+  }
+  
+  // Dibujar pista y taza
+  drawTrack();
+  
+  const cupW = W * 0.40;
+  const cupH = H * 0.46;
+  const baseX = W * 0.30;
+  const cupY = H * 0.50;
+  
+  // Animación de deslizamiento de taza
+  if(gameState.mugSlide.active) {
+    const u = clamp(gameState.mugSlide.t / gameState.mugSlide.dur, 0, 1);
+    const e = easeInOutCubic(u);
+    const offLeft = e * (baseX + cupW + 80);
+    const newStartX = W + 80;
+    const newX = newStartX - e * (newStartX - baseX);
+    
+    // Dibujar taza saliente
+    drawMug(baseX - offLeft, cupY, cupW, cupH, gameState.prevFill);
+    
+    // Dibujar taza entrante
+    drawMug(newX, cupY, cupW, cupH, 0);
+  } else {
+    // Dibujar taza normal
+    drawMug(baseX, cupY, cupW, cupH, gameState.fill);
+  }
+  
+  // Indicador de llenado
+  ctx.fillStyle = '#ffd447';
+  ctx.font = 'bold 18px system-ui';
+  ctx.fillText('☕ Llenado: ' + Math.round(gameState.fill) + '%', baseX + 8, cupY - 14);
+  
+  // Barra de tiempo mejorada
+  const timeX = W * 0.08;
+  const timeY = H * 0.12;
+  const timeW = W * 0.84;
+  const timeH = 14;
+  
+  // Fondo de la barra de tiempo
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.beginPath();
+  ctx.roundRect(timeX, timeY, timeW, timeH, 8);
+  ctx.fill();
+  
+  // Barra de progreso del tiempo
+  const p = clamp(gameState.timeLeft / gameState.timeTotal, 0, 1);
+  const progW = timeW * p;
+  
+  const timeGrad = ctx.createLinearGradient(timeX, 0, timeX + progW, 0);
+  timeGrad.addColorStop(0, '#28c9ff');
+  timeGrad.addColorStop(0.6, '#ff3ea5');
+  timeGrad.addColorStop(1, '#ffd447');
+  ctx.fillStyle = timeGrad;
+  ctx.beginPath();
+  ctx.roundRect(timeX, timeY, progW, timeH, 8);
+  ctx.fill();
+  
+  // Texto del tiempo
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = '14px system-ui';
+  ctx.fillText(Math.ceil(gameState.timeLeft) + 's', timeX + progW + 10, timeY + 11);
+  
+  // Indicador visual del tiempo
+  if (gameState.timeLeft < 10) {
+    const pulse = 0.5 + 0.5 * Math.sin(gameState.lastTs * 0.02);
+    ctx.strokeStyle = `rgba(255, 50, 50, ${pulse})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(timeX - 1, timeY - 1, timeW + 2, timeH + 2, 9);
+    ctx.stroke();
+  }
+  
+  // Partículas y efectos
+  steamTick(lastDt);
+  confettiDraw(lastDt);
+  
+  // Indicador de café especial activo
+  if (gameState.specialCoffeeActive) {
+    ctx.fillStyle = 'rgba(255,62,165,0.3)';
+    ctx.font = 'bold 16px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(`✨ Café Especial - ${Math.ceil(gameState.specialCoffeeTimeLeft)}s ✨`, W / 2, H - 20);
+    ctx.textAlign = 'left';
+  }
+}
+
+// ============================================
+// LÓGICA DE ACTUALIZACIÓN
+// ============================================
+function update(dt) {
+  if (!gameState.running) return;
+  
+  // Actualizar tiempo
+  gameState.timeLeft = clamp(gameState.timeLeft - dt, 0, gameState.timeTotal);
+  $('#time').textContent = gameState.timeLeft.toFixed(1) + 's';
+  
+  // Actualizar posición del grano
+  gameState.x += gameState.dir * gameState.speed * dt;
+  if (gameState.x > W * 0.92) {
+    gameState.x = W * 0.92;
+    gameState.dir = -1;
+  }
+  if (gameState.x < W * 0.08) {
+    gameState.x = W * 0.08;
+    gameState.dir = 1;
+  }
+  
+  // Actualizar animación de taza
+  if (gameState.mugSlide.active) {
+    gameState.mugSlide.t += dt;
+    if (gameState.mugSlide.t >= gameState.mugSlide.dur) {
+      gameState.mugSlide.active = false;
+      gameState.mugSlide.t = 0;
+      gameState.prevFill = 0;
+      gameState.fill = 0;
+    }
+  }
+  
+  // Actualizar combo
+  if (gameState.currentCombo > 0) {
+    gameState.comboTime -= dt;
+    if (gameState.comboTime <= 0) {
+      gameState.currentCombo = 0;
+      gameState.comboTime = 0;
+      $('#comboCounter').style.display = 'none';
+    }
+  }
+  
+  // Actualizar café especial
+  if (gameState.specialCoffeeActive) {
+    gameState.specialCoffeeTimeLeft -= dt;
+    if (gameState.specialCoffeeTimeLeft <= 0) {
+      gameState.specialCoffeeActive = false;
+      toast('Café especial finalizado', 'info');
+    }
+  }
+  
+  // Fin del juego si se acaba el tiempo
+  if (gameState.timeLeft <= 0) {
+    endGame();
+  }
+}
+
+function step(timestamp) {
+  if (!gameState.lastTs) gameState.lastTs = timestamp;
+  const dt = (timestamp - gameState.lastTs) / 1000;
+  gameState.lastTs = timestamp;
+  lastDt = dt;
+  
+  update(dt);
+  draw();
+  requestAnimationFrame(step);
+}
+
+// ============================================
+// FUNCIONES DE JUEGO
+// ============================================
+function startGame() {
+  const mode = gameState.modes[gameState.currentMode];
+  
+  gameState.running = true;
+  gameState.gameStartTime = Date.now();
+  gameState.baseSpeed = mode.speed;
+  gameState.speed = mode.speed;
+  gameState.x = W * 0.20;
+  gameState.dir = 1;
+  gameState.score = 0;
+  gameState.fill = 0;
+  gameState.timeTotal = mode.time;
+  gameState.timeLeft = mode.time;
+  gameState.mugSlide.active = false;
+  gameState.prevFill = 0;
+  gameState.currentHits = 0;
+  gameState.currentAttempts = 0;
+  gameState.currentCombo = 0;
+  gameState.comboTime = 0;
+  gameState.currentHighestCombo = 0;
+  
+  // Configurar zona objetivo
+  const basew = 0.10;
+  gameState.target.baseWidth = basew;
+  gameState.target.start = W * (0.45 - basew / 2);
+  gameState.target.end = W * (0.55 + basew / 2);
+  
+  // Actualizar UI
+  $('#score').textContent = '0';
+  $('#quickStats').style.display = 'none';
+  $('#comboCounter').style.display = 'none';
+  
+  // Actualizar título del modo
+  updateGameModeTitle();
+  
+  AudioKit.playHit();
+  toast('¡Que comience el juego! Toca la taza para atrapar el grano', 'info');
+}
+
+function endGame() {
+  gameState.running = false;
+  
+  // Calcular estadísticas
+  const accuracy = gameState.currentAttempts > 0 
+    ? Math.round((gameState.currentHits / gameState.currentAttempts) * 100) 
+    : 0;
+  
+  const gameTime = (Date.now() - gameState.gameStartTime) / 1000;
+  const avgTime = gameState.currentHits > 0 
+    ? (gameTime / gameState.currentHits).toFixed(1) 
+    : '0.0';
+  
+  // Mostrar estadísticas rápidas
+  $('#quickHits').textContent = gameState.currentHits;
+  $('#quickAccuracy').textContent = accuracy + '%';
+  $('#quickCombo').textContent = 'x' + gameState.currentHighestCombo;
+  $('#quickAvgTime').textContent = avgTime + 's';
+  $('#quickStats').style.display = 'block';
+  
+  // Actualizar récord
+  if (gameState.score > gameState.record) {
+    gameState.record = gameState.score;
+    $('#record').textContent = gameState.record;
+    toast('¡Nuevo récord! 🏆', 'success');
+  }
+  
+  // Actualizar estadísticas globales
+  gameState.totalHits += gameState.currentHits;
+  gameState.totalAttempts += gameState.currentAttempts;
+  
+  if (gameState.currentHighestCombo > gameState.highestCombo) {
+    gameState.highestCombo = gameState.currentHighestCombo;
+  }
+  
+  // Guardar
+  saveGame();
+  
+  // Mensaje final
+  toast('¡Partida terminada! Mira tus estadísticas.', 'info');
+}
+
+// Función principal para atrapar (ahora se llama desde clic en taza)
+function onCatch() {
+  if (!gameState.running) {
+    toast('Primero iniciá el juego', 'warning');
+    AudioKit.playMiss();
+    return;
+  }
+  
+  if (gameState.mugSlide.active) {
+    toast('Esperá: nueva taza entrando…', 'info');
+    return;
+  }
+  
+  gameState.currentAttempts++;
+  
+  const center = (gameState.target.start + gameState.target.end) / 2;
+  const tol = (gameState.target.end - gameState.target.start) / 2;
+  const hit = Math.abs(gameState.x - center) <= tol;
+  
+  if (hit) {
+    // ACIERTO
+    gameState.score++;
+    $('#score').textContent = gameState.score; // CORRECCIÓN: Actualizar puntuación inmediatamente
+    gameState.currentHits++;
+    gameState.currentCombo++;
+    gameState.comboTime = 3;
+    
+    if (gameState.currentCombo > gameState.currentHighestCombo) {
+      gameState.currentHighestCombo = gameState.currentCombo;
+    }
+    
+    // Mostrar combo
+    $('#comboValue').textContent = gameState.currentCombo;
+    $('#comboCounter').style.display = 'block';
+    $('#comboCounter').style.animation = 'none';
+    setTimeout(() => {
+      $('#comboCounter').style.animation = 'pulseCombo 0.5s ease';
+    }, 10);
+    
+    // Ajustar dificultad
+    const mult = 1.06 + Math.min(0.02 * gameState.currentCombo, 0.18);
+    const bonus = Math.min(0.9, 0.015 * gameState.score);
+    gameState.speed = clamp((gameState.speed * mult) + (gameState.baseSpeed * bonus), 160, 680);
+    
+    // Reducir zona objetivo
+    const shrink = 0.985 - Math.min(gameState.currentCombo * 0.002, 0.02);
+    const curWidth = gameState.target.end - gameState.target.start;
+    const newWidth = curWidth * shrink;
+    const mid = center;
+    const half = newWidth / 2;
+    gameState.target.start = clamp(mid - half, W * 0.08, W * 0.98 - newWidth);
+    gameState.target.end = gameState.target.start + newWidth;
+    
+    // Llenar taza
+    let add = 100 / 10 + Math.min(gameState.currentCombo * 1.8, 18);
+    
+    // Bonus por café especial "doble"
+    if (gameState.specialCoffeeActive && gameState.specialCoffeeType === 'double') {
+      add *= 1.5;
+      gameState.score++;
+      $('#score').textContent = gameState.score;
+      toast('¡Doble acierto! ✨', 'success');
+    }
+    
+    gameState.fill = clamp(gameState.fill + add, 0, 100);
+    
+    AudioKit.playHit();
+    confettiBurst(gameState.x, H * 0.22, 10);
+    
+    // Verificar si la taza está llena
+    if (gameState.fill >= 100) {
+      toast('¡Taza llena! Preparando café…', 'success');
+      startMugSlide();
+      registerCoffee();
+    }
+  } else {
+    // FALLO (con penalización o sin ella según café especial)
+    if (!(gameState.specialCoffeeActive && gameState.specialCoffeeType === 'no_penalty')) {
+      AudioKit.playMiss();
+      gameState.speed = clamp(gameState.speed * 0.98, 160, 680);
+      gameState.currentCombo = 0;
+      gameState.comboTime = 0;
+      gameState.fill = clamp(gameState.fill - 6, 0, 100);
+      $('#comboCounter').style.display = 'none';
+    } else {
+      toast('Sin penalización (Café Especial activo)', 'info');
+    }
+  }
+  
+  updateHUD();
+}
+
+function startMugSlide() {
+  gameState.mugSlide.active = true;
+  gameState.mugSlide.t = 0;
+  gameState.mugSlide.dur = 0.9;
+  gameState.prevFill = 100;
+}
+
+// CORREGIDO: Función que registra el café preparado
+function registerCoffee() {
+  // INCREMENTAR cafés preparados
+  gameState.coffeesPrepared++;
+  gameState.totalCoffees++;
+  
+  // ACTUALIZAR UI INMEDIATAMENTE
+  $('#coffees').textContent = gameState.coffeesPrepared;
+  $('#totalCoffees').textContent = gameState.totalCoffees;
+  
+  toast('¡Café preparado! Total: ' + gameState.coffeesPrepared, 'success');
+  AudioKit.playHit();
+  
+  // Bonus de tiempo
+  gameState.timeLeft = clamp(gameState.timeLeft + 3, 0, gameState.timeTotal + 5);
+  
+  // Confetti
+  confettiBurst(W * 0.5, H * 0.35, 36);
+  
+  // VERIFICAR INSIGNIA (cada 5 cafés)
+  if (gameState.coffeesPrepared % 5 === 0) {
+    gameState.badges = Math.min(gameState.badges + 1, 1000);
+    renderStamps();
+    AudioKit.playBadge();
+    toast('¡Insignia obtenida! 🏅', 'success');
+    
+    // Verificar café especial
+    unlockSpecialCoffee();
+  }
+  
+  // GUARDAR ESTADO
+  saveGame();
+  updateHUD();
+}
+
+// ============================================
+// SISTEMA DE INSIGNIAS
+// ============================================
+function renderStamps() {
+  const stampsEl = $('#stamps');
+  stampsEl.innerHTML = '';
+  
+  const total = 10;
+  const have = gameState.badges;
+  
+  for (let i = 0; i < total; i++) {
+    const stamp = document.createElement('div');
+    stamp.className = 'stamp' + (i < have ? ' filled' : '');
+    stamp.title = i < have ? 'Insignia #' + (i + 1) : 'Vacío';
+    
+    let icon = i < have ? '🏅' : '+';
+    if (i === 9 && have >= 10) {
+      icon = '👑';
+      stamp.classList.add('special');
+    } else if (i === 4 && have >= 5) {
+      icon = '⭐';
+      stamp.classList.add('special');
+    }
+    
+    stamp.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div style="font-size:20px">${icon}</div>
+        <div style="font-size:12px;color:var(--muted)">${i+1}</div>
+      </div>
+    `;
+    
+    stampsEl.appendChild(stamp);
+  }
+  
+  // Barra de progreso
+  const progress = (have / total) * 100;
+  $('#progressBar').style.width = progress + '%';
+  $('#progressText').textContent = have + '/10';
+  $('#badgesLeft').textContent = total - have;
+  
+  // Botón de canje
+  const redeemBtn = $('#redeemBtn');
+  redeemBtn.disabled = have < 10;
+  if (have >= 10) {
+    redeemBtn.style.background = 'linear-gradient(180deg, var(--neonMagenta), var(--neonCyan))';
+  }
+}
+
+// ============================================
+// SISTEMA DE CAFÉ ESPECIAL
+// ============================================
+function unlockSpecialCoffee() {
+  const specialCoffees = [
+    { id: 'double', name: 'Doble Shot', desc: 'Atrapá 2 granos a la vez por 30s', req: 25 },
+    { id: 'slow', name: 'Café Helado', desc: 'Zona dorada más lenta por 30s', req: 50 },
+    { id: 'no_penalty', name: 'Descafeinado', desc: 'Sin penalización al fallar por 30s', req: 100 }
+  ];
+  
+  const total = gameState.totalCoffees;
+  let unlocked = null;
+  
+  for (const coffee of specialCoffees) {
+    if (total >= coffee.req && !gameState.unlockedCoffees.includes(coffee.id)) {
+      unlocked = coffee;
+      break;
+    }
+  }
+  
+  if (unlocked) {
+    gameState.unlockedCoffees.push(unlocked.id);
+    saveGame();
+    
+    $('#specialCoffeeName').textContent = unlocked.name;
+    $('#specialCoffeeDesc').textContent = unlocked.desc;
+    $('#specialCoffee').style.display = 'block';
+    
+    AudioKit.playSuccess();
+    toast(`¡${unlocked.name} desbloqueado!`, 'success', 3000);
+  }
+}
+
+function activateSpecialCoffee() {
+  const coffeeName = $('#specialCoffeeName').textContent;
+  let type = 'double';
+  
+  if (coffeeName.includes('Helado')) type = 'slow';
+  if (coffeeName.includes('Descafeinado')) type = 'no_penalty';
+  
+  gameState.specialCoffeeActive = true;
+  gameState.specialCoffeeType = type;
+  gameState.specialCoffeeTimeLeft = 30;
+  
+  $('#specialCoffee').style.display = 'none';
+  toast(`¡${coffeeName} activado!`, 'success');
+}
+
+// ============================================
+// SISTEMA DE CANJE
+// ============================================
+function generateCouponCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+function redeemBadges() {
+  if (gameState.badges < 10) {
+    toast('Necesitás 10 insignias para canjear', 'warning');
+    return;
+  }
+  
+  // Generar cupón
+  const couponCode = generateCouponCode();
+  $('#couponCode').textContent = couponCode;
+  
+  // Generar QR
+  generateQRCode(couponCode);
+  
+  // Restar insignias
+  gameState.badges -= 10;
+  renderStamps();
+  
+  // Efectos
+  confettiBurst(W * 0.5, H * 0.4, 48);
+  AudioKit.playSuccess();
+  
+  // Guardar cupón
+  const coupon = {
+    code: couponCode,
+    expires: Date.now() + 24 * 60 * 60 * 1000,
+    used: false
+  };
+  localStorage.setItem('khinally_coupon', JSON.stringify(coupon));
+  
+  // Mostrar modal
+  showModal('redeemModal');
+  
+  saveGame();
+  updateHUD();
+}
+
+function generateQRCode(code) {
+  const qrContainer = $('#qrCode');
+  qrContainer.innerHTML = '';
+  
+  // Usar API de QR
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=KHINALLY-${code}&format=png`;
+  
+  const img = document.createElement('img');
+  img.src = qrUrl;
+  img.alt = 'Código QR del cupón';
+  img.style.width = '100%';
+  img.style.maxWidth = '200px';
+  img.style.height = 'auto';
+  img.style.borderRadius = '8px';
+  
+  qrContainer.appendChild(img);
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+function resizeCanvas() {
+  const wrap = $('.canvas-wrap');
+  const padding = 24;
+  const availableWidth = Math.max(320, Math.min(wrap.clientWidth, window.innerWidth - padding));
+  const availableHeight = window.innerHeight - 160;
+  let height;
+  
+  gameState.isMobile = window.matchMedia('(max-width:480px)').matches;
+  
+  if (gameState.isMobile) {
+    height = Math.round(Math.min(Math.max(availableHeight, 360), availableWidth * 1.2));
+  } else {
+    const aspect = 920/400;
+    height = Math.round(availableWidth / aspect);
+  }
+  
+  const dpr = window.devicePixelRatio || 1;
+  cvs.style.height = height + 'px';
+  cvs.width = Math.round(availableWidth * dpr);
+  cvs.height = Math.round(height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  
+  W = availableWidth;
+  H = height;
+  
+  const wPct = gameState.target.baseWidth || 0.10;
+  const mid = 0.5;
+  gameState.target.start = W * (mid - wPct / 2);
+  gameState.target.end = W * (mid + wPct / 2);
+}
+
+// ============================================
+// FUNCIONES PARA SELECCIÓN DE MODO
+// ============================================
+function showModeSelectModal() {
+  // Seleccionar el modo actual
+  $$('.mode-option').forEach(option => {
+    option.classList.remove('selected');
+    if (option.dataset.mode === gameState.currentMode) {
+      option.classList.add('selected');
+    }
+  });
+  
+  showModal('modeSelectModal');
+}
+
+function selectMode(mode) {
+  if (!gameState.modes[mode]) return;
+  
+  gameState.currentMode = mode;
+  const modeData = gameState.modes[mode];
+  
+  // Actualizar selección en el modal
+  $$('.mode-option').forEach(option => {
+    option.classList.remove('selected');
+    if (option.dataset.mode === mode) {
+      option.classList.add('selected');
+    }
+  });
+  
+  // Actualizar título del juego
+  updateGameModeTitle();
+  
+  if (!gameState.unlockedCoffees.includes(mode)) {
+    gameState.unlockedCoffees.push(mode);
+    saveGame();
+    toast(`¡Modo ${modeData.name} desbloqueado!`, 'success');
+  }
+}
+
+function updateGameModeTitle() {
+  const modeData = gameState.modes[gameState.currentMode];
+  $('#gameModeTitle').textContent = `${modeData.badge} Modo ${modeData.name} (${modeData.time}s)`;
+  $('#modeLabel').textContent = modeData.name;
+}
+
+// ============================================
+// INICIALIZACIÓN Y EVENTOS - REVISADO
+// ============================================
+function init() {
+  // Cargar datos
+  loadGame();
+  
+  // Insignias
+  renderStamps();
+  
+  // Configurar eventos
+  setupEvents();
+  
+  // Canvas
+  resizeCanvas();
+  draw();
+  requestAnimationFrame(step);
+  
+  // Verificar cupón
+  checkCoupon();
+  
+  // Inicializar contador de jugadores semanal
+  updateWeeklyPlayers();
+  
+  // Actualizar título del modo
+  updateGameModeTitle();
+}
+
+function setupEvents() {
+  // Botones del juego
+  $('#startBtn').addEventListener('click', showModeSelectModal);
+  $('#heroStartBtn').addEventListener('click', startFromWelcome);
+  $('#startWelcomeBtn').addEventListener('click', startFromWelcome);
+  $('#musicBtn').addEventListener('click', () => {
+    const enabled = AudioKit.toggle();
+    toast(enabled ? 'Música ON 🎵' : 'Música OFF 🔇', 'info');
+  });
+  $('#helpBtn').addEventListener('click', () => showModal('instructionsModal'));
+  $('#viewStatsBtn').addEventListener('click', showStats);
+  $('#redeemBtn').addEventListener('click', redeemBadges);
+  $('#howToPlayBtn').addEventListener('click', () => showModal('instructionsModal'));
+  $('#closeInstructionsBtn').addEventListener('click', () => hideModal('instructionsModal'));
+  $('#activateSpecialBtn').addEventListener('click', activateSpecialCoffee);
+  $('#changeModeBtn').addEventListener('click', () => {
+    if (gameState.running) {
+      toast('Terminá la partida antes de cambiar de modo', 'warning');
+    } else {
+      showModeSelectModal();
+    }
+  });
+  
+  // Botón para iniciar el modo seleccionado
+  $('#startSelectedModeBtn').addEventListener('click', () => {
+    hideModal('modeSelectModal');
+    startGame();
+  });
+  
+  // Selección de modos en el modal
+  $$('.mode-option').forEach(option => {
+    option.addEventListener('click', () => {
+      selectMode(option.dataset.mode);
+    });
+  });
+  
+  // BOTÓN COMPARTIR CORREGIDO
+  $('#shareBtn').addEventListener('click', () => {
+    const score = gameState.score;
+    const totalCoffees = gameState.totalCoffees;
+    const badges = gameState.badges;
+    
+    const shareText = `¡Acabo de preparar ${score} cafés en Barista Khinally! 🎮☕\n🏆 Puntuación: ${score}\n☕ Total cafés: ${totalCoffees}\n🏅 Insignias: ${badges}/10\n\nJugá vos también en:\n${window.location.href}\n\n#CaféKhinally #BaristaGame`;
+    
+    // Intentar usar Web Share API si está disponible
+    if (navigator.share) {
+      navigator.share({
+        title: 'Mi puntuación en Barista Khinally',
+        text: shareText,
+        url: window.location.href
+      }).then(() => {
+        toast('¡Puntuación compartida!', 'success');
+      }).catch((error) => {
+        console.log('Error al compartir:', error);
+        copyToClipboard(shareText);
+      });
+    } else {
+      // Fallback: copiar al portapapeles
+      copyToClipboard(shareText);
+    }
+  });
+  
+  // Botones de compartir en modales
+  $('#shareWhatsappBtn').addEventListener('click', () => {
+    const statsText = `📊 Mis estadísticas en Barista Khinally:\n🏆 Récord: ${gameState.record}\n☕ Cafés preparados: ${gameState.totalCoffees}\n🏅 Insignias: ${gameState.badges}/10\n🎯 Precisión: ${gameState.totalAttempts > 0 ? Math.round((gameState.totalHits / gameState.totalAttempts) * 100) : 0}%\n\nJugá en: ${window.location.href}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(statsText)}`;
+    window.open(whatsappUrl, '_blank');
+  });
+  
+  $('#copyStatsBtn').addEventListener('click', () => {
+    const statsText = `📊 Mis estadísticas en Barista Khinally:\n🏆 Récord: ${gameState.record}\n☕ Cafés preparados: ${gameState.totalCoffees}\n🏅 Insignias: ${gameState.badges}/10\n🎯 Precisión: ${gameState.totalAttempts > 0 ? Math.round((gameState.totalHits / gameState.totalAttempts) * 100) : 0}%\n⚡ Combo más alto: x${gameState.highestCombo}\n🎮 Modos desbloqueados: ${gameState.unlockedCoffees.length}/3`;
+    copyToClipboard(statsText);
+  });
+  
+  $('#shareCouponBtn').addEventListener('click', () => {
+    const couponCode = $('#couponCode').textContent;
+    const couponText = `🎉 ¡Gané un café gratis en Café Khinally!\nCódigo: KHINALLY-${couponCode}\n📍 Presentar en: Lord Cochrane 049\n⏰ Válido por 24 horas\n\n¡Jugá vos también en: ${window.location.href}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: '¡Café gratis en Khinally!',
+        text: couponText,
+        url: window.location.href
+      });
+    } else {
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(couponText)}`;
+      window.open(whatsappUrl, '_blank');
+    }
+  });
+  
+  // CLIC/TAP EN EL CANVAS PARA ATRAPAR
+  cvs.addEventListener('click', (e) => {
+    if (!gameState.running) {
+      toast('Primero iniciá el juego', 'warning');
+      return;
+    }
+    
+    const rect = cvs.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Mostrar indicador visual del toque
+    showTouchIndicator(e.clientX, e.clientY);
+    
+    // Verificar si el clic fue en la taza
+    if (isPointInMug(x, y)) {
+      onCatch();
+    } else {
+      toast('Tocá la taza de café para atrapar el grano', 'info');
+    }
+  });
+  
+  // Touch para móviles
+  cvs.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (!gameState.running) return;
+    
+    const touch = e.touches[0];
+    const rect = cvs.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    // Mostrar indicador visual del toque
+    showTouchIndicator(touch.clientX, touch.clientY);
+    
+    // Verificar si el toque fue en la taza
+    if (isPointInMug(x, y)) {
+      onCatch();
+    } else {
+      toast('Tocá la taza de café para atrapar el grano', 'info');
+    }
+  }, { passive: false });
+  
+  // Teclado
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault();
+      if ($('#welcome').style.display !== 'none') {
+        startFromWelcome();
+      } else {
+        // Simular clic en la taza con teclado
+        const mugCenterX = mugBounds.x + mugBounds.width / 2;
+        const mugCenterY = mugBounds.y + mugBounds.height / 2;
+        if (isPointInMug(mugCenterX, mugCenterY)) {
+          onCatch();
+        }
+      }
+    } else if (e.key.toLowerCase() === 'm') {
+      const enabled = AudioKit.toggle();
+      toast(enabled ? 'Música ON' : 'Música OFF', 'info');
+    } else if (e.key.toLowerCase() === 's') {
+      if (!gameState.running) {
+        showModeSelectModal();
+      }
+    } else if (e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'm') {
+      if (!gameState.running) {
+        showModeSelectModal();
+      }
+    } else if (e.key.toLowerCase() === 'h') {
+      showModal('instructionsModal');
+    }
+  });
+  
+  // Resize
+  window.addEventListener('resize', resizeCanvas);
+}
+
+// Función auxiliar para copiar al portapapeles
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    toast('¡Copiado al portapapeles!', 'success');
+  }).catch(err => {
+    console.error('Error al copiar:', err);
+    // Fallback para navegadores antiguos
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      toast('¡Copiado al portapapeles!', 'success');
+    } catch (e) {
+      toast('Error al copiar', 'warning');
+    }
+    document.body.removeChild(textArea);
+  });
+}
+
+function startFromWelcome() {
+  hideWelcome();
+  showModeSelectModal();
+}
+
+function checkCoupon() {
+  const saved = localStorage.getItem('khinally_coupon');
+  if (saved) {
+    const coupon = JSON.parse(saved);
+    if (coupon.expires > Date.now() && !coupon.used) {
+      $('#couponCode').textContent = coupon.code;
+      toast('Tienes un cupón pendiente por canjear', 'info', 4000);
+    }
+  }
+}
+
+// Actualizar contador semanal de jugadores
+function updateWeeklyPlayers() {
+  const weeklyKey = 'khinally_weekly_players_' + getWeekNumber();
+  let weeklyCount = parseInt(localStorage.getItem(weeklyKey) || '0');
+  
+  // Incrementar solo si es la primera vez que juega esta semana
+  const playedThisWeekKey = 'khinally_played_this_week';
+  const hasPlayedThisWeek = localStorage.getItem(playedThisWeekKey);
+  
+  if (!hasPlayedThisWeek) {
+    weeklyCount++;
+    localStorage.setItem(weeklyKey, weeklyCount.toString());
+    localStorage.setItem(playedThisWeekKey, 'true');
+  }
+  
+  $('#weeklyPlayers').textContent = weeklyCount;
+}
+
+function getWeekNumber() {
+  const now = new Date();
+  const firstDayOfYear = new Date(now.getFullYear(), 0, 1);
+  const pastDaysOfYear = (now - firstDayOfYear) / 86400000;
+  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+}
+
+// ============================================
+// FUNCIONES AUXILIARES
+// ============================================
+function updateHUD() {
+  $('#coffees').textContent = gameState.coffeesPrepared;
+  $('#badgesCount').textContent = gameState.badges;
+  $('#record').textContent = gameState.record;
+  $('#totalCoffees').textContent = gameState.totalCoffees;
+}
+
+function showStats() {
+  const accuracy = gameState.totalAttempts > 0 
+    ? Math.round((gameState.totalHits / gameState.totalAttempts) * 100) 
+    : 0;
+  
+  const statsHTML = `
+    <div class="stats-panel" style="border:none; padding:0;">
+      <div class="stat-row">
+        <span>🏆 Récord personal:</span>
+        <span class="stat-value">${gameState.record}</span>
+      </div>
+      <div class="stat-row">
+        <span>🎯 Precisión total:</span>
+        <span class="stat-value">${accuracy}%</span>
+      </div>
+      <div class="stat-row">
+        <span>⚡ Combo más alto:</span>
+        <span class="stat-value">x${gameState.highestCombo}</span>
+      </div>
+      <div class="stat-row">
+        <span>☕ Cafés preparados:</span>
+        <span class="stat-value">${gameState.totalCoffees}</span>
+      </div>
+      <div class="stat-row">
+        <span>🏅 Insignias ganadas:</span>
+        <span class="stat-value">${gameState.badges}</span>
+      </div>
+      <div class="stat-row">
+        <span>🎮 Modos desbloqueados:</span>
+        <span class="stat-value">${gameState.unlockedCoffees.length}/3</span>
+      </div>
+    </div>
+  `;
+  
+  $('#statsContent').innerHTML = statsHTML;
+  showModal('statsModal');
+}
+
+// ============================================
+// INICIAR
+// ============================================
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
