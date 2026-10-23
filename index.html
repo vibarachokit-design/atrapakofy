@@ -1,1 +1,388 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Ondas Visibles</title>
+<style>
+  :root {
+    --bg: #05070a;
+    --panel: rgba(8, 12, 18, 0.72);
+    --line: rgba(255, 255, 255, 0.14);
+    --text: #eef3f8;
+    --muted: #9aa7b4;
+    --accent: #ffd54f;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+  #cam, #cv { position: fixed; inset: 0; width: 100%; height: 100%; }
+  #cam { object-fit: cover; background: #000; }
+  #cv { pointer-events: none; }
 
+  .glass { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+  #hud { position: fixed; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 12px); padding: 10px 12px; }
+  .row { display: flex; gap: 8px; align-items: baseline; font: 13px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row b { width: 84px; flex: none; font-weight: 600; color: var(--muted); }
+  .row.on, .row.on b { color: var(--accent); }
+  #spark { display: block; width: 100%; height: 44px; margin-top: 6px; }
+
+  #legend { position: fixed; right: 12px; top: 210px; bottom: 190px; width: 12px; border-radius: 6px;
+    background: linear-gradient(hsl(0 100% 50%), hsl(60 100% 50%), hsl(120 100% 50%), hsl(180 100% 50%), hsl(240 100% 50%)); opacity: .85; }
+  #legend::before, #legend::after { position: absolute; right: 0; font-size: 12px; color: #fff; text-shadow: 0 0 3px #000; }
+  #legend::before { content: "fuerte"; top: -20px; }
+  #legend::after { content: "débil"; bottom: -20px; }
+
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 8px 8px calc(env(safe-area-inset-bottom) + 12px);
+    background: linear-gradient(transparent, rgba(0,0,0,.75) 30%); display: grid; gap: 6px; }
+  .btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .btns.four { grid-template-columns: repeat(4, 1fr); }
+  button { font: inherit; font-size: 14px; color: var(--text); background: rgba(255,255,255,.1); border: 1px solid var(--line);
+    border-radius: 10px; padding: 11px 6px; cursor: pointer; }
+  button:active { transform: scale(.97); }
+  button.sel { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 600; }
+  button[disabled] { opacity: .35; }
+
+  #center { position: fixed; left: 50%; top: 50%; transform: translate(-50%, 54px); text-align: center;
+    font-weight: 700; font-size: 20px; text-shadow: 0 0 4px #000, 0 0 8px #000; pointer-events: none; }
+  #hint { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -96px); font-size: 14px; color: #fff;
+    text-shadow: 0 0 4px #000; white-space: nowrap; pointer-events: none; }
+  #toast { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); padding: 8px 14px; font-size: 14px;
+    opacity: 0; transition: opacity .25s; pointer-events: none; max-width: 90vw; text-align: center; }
+  #toast.show { opacity: 1; }
+
+  .modal { position: fixed; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.6); z-index: 10; }
+  .modal.hidden { display: none; }
+  .card { max-width: 440px; max-height: 86vh; overflow: auto; padding: 22px; }
+  .card h1 { margin: 0 0 6px; font-size: 24px; }
+  .card h2 { margin: 18px 0 6px; font-size: 16px; color: var(--accent); }
+  .card p, .card li { color: #d4dbe2; margin: 6px 0; }
+  .card ul { padding-left: 18px; margin: 6px 0; }
+  .card .go { width: 100%; margin-top: 16px; background: var(--accent); color: #111; font-weight: 700; font-size: 16px; padding: 14px; }
+  .small { font-size: 13px; color: var(--muted) !important; }
+  code { font-size: 12px; background: rgba(255,255,255,.08); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<video id="cam" playsinline muted autoplay></video>
+<canvas id="cv"></canvas>
+
+<div id="hud" class="glass">
+  <div class="row" data-layer="ping"><b>Latencia</b><span id="vPing">—</span></div>
+  <div class="row" data-layer="down"><b>Conexión</b><span id="vDown">—</span></div>
+  <div class="row" data-layer="mag"><b>Magnético</b><span id="vMag">—</span></div>
+  <canvas id="spark"></canvas>
+</div>
+
+<div id="legend"></div>
+<div id="center"></div>
+<div id="hint">Mueve el teléfono despacio para pintar</div>
+<div id="toast" class="glass"></div>
+
+<div id="bar">
+  <div class="btns">
+    <button data-sel="ping">Latencia</button>
+    <button data-sel="down">Conexión</button>
+    <button data-sel="mag">Magnético</button>
+  </div>
+  <div class="btns four">
+    <button id="bPaint">● Pintando</button>
+    <button id="bClear">Limpiar</button>
+    <button id="bCal">Calibrar</button>
+    <button id="bInfo">Info</button>
+  </div>
+</div>
+
+<div id="start" class="modal">
+  <div class="card glass">
+    <h1>Ondas Visibles</h1>
+    <p>Apunta la cámara a tu alrededor y muévela despacio. En cada dirección queda una mancha de color según la señal medida: <b style="color:hsl(0 100% 60%)">rojo = fuerte</b>, <b style="color:hsl(220 100% 65%)">azul = débil</b>.</p>
+    <ul>
+      <li><b>Latencia</b>: tiempo real de ida y vuelta a internet, medido cada segundo. Sube cuando la señal WiFi o celular empeora.</li>
+      <li><b>Conexión</b>: velocidad y tipo de red que estima el navegador.</li>
+      <li><b>Magnético</b>: campo magnético en µT (cables, motores, imanes), si tu navegador lo permite.</li>
+    </ul>
+    <p class="small">Necesita permiso de cámara y de sensores de movimiento. Sostén el teléfono en vertical.</p>
+    <button class="go" id="bStart">Empezar</button>
+  </div>
+</div>
+
+<div id="info" class="modal hidden">
+  <div class="card glass">
+    <h1>Qué estás viendo</h1>
+    <h2>Por qué no hay dBm de WiFi</h2>
+    <p>Por privacidad, los navegadores no entregan la intensidad del WiFi ni de la red celular. Esta página mide la <b>calidad real de tu conexión</b> con un ping cada segundo, que empeora cuando la señal baja.</p>
+    <h2>Dirección vs. posición</h2>
+    <p>La antena del teléfono capta casi igual en todas direcciones. Al girar, lo que cambia es sobre todo la sombra de tu cuerpo y los obstáculos. Para ver zonas buenas y malas, <b>camina</b> por la casa mirando el gráfico de arriba.</p>
+    <h2>Campo magnético</h2>
+    <p>Detecta campos estáticos o de muy baja frecuencia, no ondas de radio. Pulsa <b>Calibrar</b> lejos de aparatos y luego acércate a un enchufe, un parlante o un microondas.</p>
+    <p class="small" id="magHelp"></p>
+    <h2>Cómo abrir esta página</h2>
+    <p class="small">La cámara solo funciona si la página se abre por <code>https://</code>. Súbela a GitHub Pages o Netlify Drop y ábrela desde el navegador del celular. En el computador funciona abriendo el archivo directamente.</p>
+    <p class="small">El ping se hace a <code>www.gstatic.com/generate_204</code>, una dirección pública que no devuelve contenido.</p>
+    <button class="go" id="bCloseInfo">Cerrar</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- Estado ----------
+  const S = { ping: null, down: null, netType: null, effType: null, rtt: null, mag: null };
+  let magStatus = "pendiente";
+  let baseline = null;
+  let layer = "ping";
+  let painting = true;
+  let haveOrientation = false;
+  const R = [1, 0, 0, 0, 1, 0, 0, 0, 1];     // dispositivo -> mundo (fila mayor)
+  const samples = [];                         // {x,y,z,r}
+  const hist = [];                            // lecturas recientes para el gráfico
+  const MAX_SAMPLES = 2500, HIST = 150, COS_MIN = Math.cos(2 * Math.PI / 180);
+  const FOV_LONG_DEG = 65;                    // campo de visión de la cámara (lado largo)
+
+  const $ = (id) => document.getElementById(id);
+  const cv = $("cv"), ctx = cv.getContext("2d");
+  const sp = $("spark"), sctx = sp.getContext("2d");
+  const clamp = (v) => Math.max(0, Math.min(1, v));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // ---------- Normalización: 0 = débil, 1 = fuerte ----------
+  function norm(l, r) {
+    if (l === "ping") return r.ping == null ? null
+      : clamp(1 - (Math.log(r.ping) - Math.log(20)) / (Math.log(600) - Math.log(20)));  // 20 ms..600 ms
+    if (l === "down") return r.down == null ? null : clamp((Math.log10(Math.max(r.down, 0.01)) + 1) / 2); // 0,1..10 Mbps
+    if (l === "mag") return (r.mag == null || baseline == null) ? null : clamp(Math.abs(r.mag - baseline) / 40);
+    return null;
+  }
+  const color = (v, a) => `hsla(${240 * (1 - v)}, 100%, 50%, ${a})`;
+
+  function centerText(l, r) {
+    if (l === "ping") return r.ping == null ? "sin conexión" : `${r.ping} ms`;
+    if (l === "down") return r.down == null ? "no disponible" : `${r.down} Mbps`;
+    if (l === "mag") return r.mag == null ? "no disponible" : `${r.mag.toFixed(1)} µT`;
+  }
+
+  // ---------- Orientación ----------
+  function onOrientation(e) {
+    if (e.alpha == null) return;
+    haveOrientation = true;
+    const d = Math.PI / 180;
+    const cX = Math.cos(e.beta * d), sX = Math.sin(e.beta * d);
+    const cY = Math.cos(e.gamma * d), sY = Math.sin(e.gamma * d);
+    const cZ = Math.cos(e.alpha * d), sZ = Math.sin(e.alpha * d);
+    R[0] = cZ * cY - sZ * sX * sY; R[1] = -cX * sZ; R[2] = cY * sZ * sX + cZ * sY;
+    R[3] = cY * sZ + cZ * sX * sY; R[4] = cZ * cX;  R[5] = sZ * sY - cZ * cY * sX;
+    R[6] = -cX * sY;               R[7] = sX;       R[8] = cX * cY;
+  }
+
+  function project(x, y, z, f, w, h) {
+    const dx = R[0] * x + R[3] * y + R[6] * z;
+    const dy = R[1] * x + R[4] * y + R[7] * z;
+    const dz = R[2] * x + R[5] * y + R[8] * z;
+    if (dz > -0.05) return null;               // detrás de la cámara
+    return [w / 2 + dx / -dz * f, h / 2 - dy / -dz * f];
+  }
+
+  // ---------- Mediciones ----------
+  async function pingLoop() {
+    for (;;) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 2500);
+      const t0 = performance.now();
+      try {
+        await fetch("https://www.gstatic.com/generate_204?r=" + Math.random(),
+          { mode: "no-cors", cache: "no-store", signal: ctrl.signal });
+        S.ping = Math.max(1, Math.round(performance.now() - t0));
+      } catch { S.ping = null; }
+      clearTimeout(timer);
+      await sleep(800);
+    }
+  }
+
+  function watchConnection() {
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!c) return;
+    const upd = () => {
+      S.down = typeof c.downlink === "number" ? c.downlink : null;
+      S.rtt = typeof c.rtt === "number" ? c.rtt : null;
+      S.effType = c.effectiveType || null;
+      S.netType = c.type || null;
+    };
+    upd();
+    c.addEventListener("change", upd);
+  }
+
+  function startMagnetometer() {
+    if (!("Magnetometer" in window)) {
+      magStatus = "no disponible";
+      $("magHelp").textContent = "Tu navegador no expone el magnetómetro. En Chrome para Android puedes activarlo en chrome://flags → «Generic Sensor Extra Classes».";
+      $$sel("mag").disabled = true;
+      return;
+    }
+    try {
+      const m = new Magnetometer({ frequency: 10 });
+      m.addEventListener("reading", () => {
+        S.mag = Math.hypot(m.x, m.y, m.z);
+        if (baseline == null) baseline = S.mag;
+        magStatus = "ok";
+      });
+      m.addEventListener("error", (e) => { magStatus = e.error && e.error.name || "error"; });
+      m.start();
+    } catch (e) { magStatus = e.name || "error"; }
+  }
+
+  // ---------- Interfaz ----------
+  const $$sel = (l) => document.querySelector(`[data-sel="${l}"]`);
+  function selectLayer(l) {
+    layer = l;
+    document.querySelectorAll("[data-sel]").forEach((b) => b.classList.toggle("sel", b.dataset.sel === l));
+    document.querySelectorAll(".row").forEach((r) => r.classList.toggle("on", r.dataset.layer === l));
+  }
+  let toastTimer;
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
+  }
+
+  function updateHud() {
+    $("vPing").textContent = S.ping == null ? "sin respuesta" : `${S.ping} ms`;
+    const parts = [];
+    if (S.netType) parts.push(S.netType === "wifi" ? "WiFi" : S.netType === "cellular" ? "celular" : S.netType);
+    if (S.effType) parts.push(S.effType.toUpperCase());
+    if (S.down != null) parts.push(`${S.down} Mbps`);
+    if (S.rtt != null) parts.push(`rtt ${S.rtt} ms`);
+    $("vDown").textContent = parts.length ? parts.join(" · ") : "no disponible en este navegador";
+    $("vMag").textContent = S.mag == null
+      ? (magStatus === "pendiente" ? "esperando…" : magStatus)
+      : `${S.mag.toFixed(1)} µT · Δ ${(S.mag - (baseline ?? S.mag) >= 0 ? "+" : "")}${(S.mag - (baseline ?? S.mag)).toFixed(1)} µT`;
+  }
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    for (const c of [cv, sp]) {
+      const r = c.getBoundingClientRect();
+      c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
+    }
+  }
+  window.addEventListener("resize", resize);
+
+  // ---------- Bucle principal ----------
+  let lastSample = 0;
+  function frame(t) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv.width, h = cv.height;
+
+    if (t - lastSample > 100) {
+      lastSample = t;
+      const snap = { ...S };
+      hist.push(snap); if (hist.length > HIST) hist.shift();
+      if (painting && haveOrientation) {
+        const x = -R[2], y = -R[5], z = -R[8];   // hacia dónde mira la cámara trasera
+        const last = samples[samples.length - 1];
+        if (!last || last.x * x + last.y * y + last.z * z < COS_MIN) {
+          samples.push({ x, y, z, r: snap });
+          if (samples.length > MAX_SAMPLES) samples.shift();
+        }
+      }
+      updateHud();
+    }
+
+    ctx.clearRect(0, 0, w, h);
+    const f = Math.max(w, h) / 2 / Math.tan(FOV_LONG_DEG / 2 * Math.PI / 180);
+    const rad = f * 0.06;
+
+    for (const s of samples) {
+      const v = norm(layer, s.r); if (v == null) continue;
+      const p = project(s.x, s.y, s.z, f, w, h); if (!p) continue;
+      ctx.fillStyle = color(v, 0.24); ctx.beginPath(); ctx.arc(p[0], p[1], rad, 0, 7); ctx.fill();
+      ctx.fillStyle = color(v, 0.6);  ctx.beginPath(); ctx.arc(p[0], p[1], rad * 0.45, 0, 7); ctx.fill();
+    }
+
+    // Mira central
+    const cx = w / 2, cy = h / 2, cvv = norm(layer, S);
+    ctx.strokeStyle = cvv == null ? "#fff" : color(cvv, 1);
+    ctx.lineWidth = 3 * dpr;
+    ctx.beginPath(); ctx.arc(cx, cy, 30 * dpr, 0, 7); ctx.stroke();
+    ctx.beginPath();
+    for (const [ax, ay] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      ctx.moveTo(cx + ax * 34 * dpr, cy + ay * 34 * dpr);
+      ctx.lineTo(cx + ax * 46 * dpr, cy + ay * 46 * dpr);
+    }
+    ctx.stroke();
+    $("center").textContent = centerText(layer, S);
+    $("hint").style.display = samples.length ? "none" : "block";
+    if (!haveOrientation && t > 4000) $("hint").textContent = "Sin sensor de orientación: solo verás el gráfico";
+
+    // Gráfico de la capa activa
+    const sw = sp.width, sh = sp.height;
+    sctx.clearRect(0, 0, sw, sh);
+    sctx.strokeStyle = "rgba(255,255,255,.12)"; sctx.lineWidth = 1;
+    sctx.beginPath(); sctx.moveTo(0, sh - 0.5); sctx.lineTo(sw, sh - 0.5); sctx.stroke();
+    sctx.strokeStyle = "#ffd54f"; sctx.lineWidth = 2 * dpr; sctx.lineJoin = "round";
+    sctx.beginPath();
+    let pen = false; const step = sw / (HIST - 1), off = HIST - hist.length;
+    hist.forEach((r, i) => {
+      const v = norm(layer, r);
+      if (v == null) { pen = false; return; }
+      const x = (off + i) * step, y = 2 * dpr + (1 - v) * (sh - 4 * dpr);
+      pen ? sctx.lineTo(x, y) : sctx.moveTo(x, y); pen = true;
+    });
+    sctx.stroke();
+
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Inicio ----------
+  async function start() {
+    $("start").classList.add("hidden");
+    resize();
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false,
+      });
+      $("cam").srcObject = stream;
+    } catch (e) {
+      toast(location.protocol === "https:" || location.protocol === "file:"
+        ? "No se pudo abrir la cámara: " + (e.message || e.name)
+        : "La cámara necesita que la página se abra por https://");
+    }
+
+    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+      try { await DeviceOrientationEvent.requestPermission(); } catch {}
+    }
+    const evName = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
+    window.addEventListener(evName, onOrientation);
+
+    watchConnection();
+    startMagnetometer();
+    pingLoop();
+    requestAnimationFrame(frame);
+  }
+
+  document.querySelectorAll("[data-sel]").forEach((b) => b.addEventListener("click", () => selectLayer(b.dataset.sel)));
+  $("bPaint").addEventListener("click", () => {
+    painting = !painting; $("bPaint").textContent = painting ? "● Pintando" : "Pausado";
+  });
+  $("bClear").addEventListener("click", () => { samples.length = 0; });
+  $("bCal").addEventListener("click", () => {
+    if (S.mag == null) { toast("No hay lectura magnética para calibrar"); return; }
+    baseline = S.mag; toast("Referencia guardada. Ahora acércate a un aparato eléctrico.");
+  });
+  $("bInfo").addEventListener("click", () => $("info").classList.remove("hidden"));
+  $("bCloseInfo").addEventListener("click", () => $("info").classList.add("hidden"));
+  $("bStart").addEventListener("click", start);
+
+  selectLayer("ping");
+  resize();
+})();
+</script>
+</body>
+</html>
